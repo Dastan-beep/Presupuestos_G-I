@@ -277,6 +277,25 @@
   .traspaso-btn { background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.25); color: var(--white); padding: 8px 16px; border-radius: 50px; cursor: pointer; font-family: 'DM Sans', sans-serif; font-size: 0.78rem; font-weight: 600; transition: all 0.2s; }
   .traspaso-btn:hover { background: rgba(255,255,255,0.22); }
  
+  .tab-separator { flex: 1; }
+  .day-filter-select { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: var(--white); padding: 6px 12px; border-radius: 50px; font-family: 'DM Sans', sans-serif; font-size: 0.8rem; cursor: pointer; margin: auto 0; outline: none; }
+  .day-filter-select option { background: var(--navy); color: var(--white); }
+ 
+  /* CATEGORY BREAKDOWN */
+  .cat-breakdown { margin-top: 20px; }
+  .cat-breakdown h3 { font-family: 'Playfair Display', serif; font-size: 0.95rem; margin-bottom: 14px; color: var(--text-dark); }
+  .cat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px; }
+  .cat-card { background: var(--white); border-radius: var(--radius-sm); padding: 14px 16px; box-shadow: var(--shadow); border-left: 4px solid var(--cream-dark); }
+  .cat-card.type-gasto-variable { border-left-color: var(--red-light); }
+  .cat-card.type-gasto-fijo { border-left-color: var(--red); }
+  .cat-card.type-ingreso { border-left-color: var(--green); }
+  .cat-card.type-ahorro { border-left-color: var(--gold); }
+  .cat-name { font-size: 0.78rem; font-weight: 600; color: var(--text-mid); margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .cat-amount { font-family: 'Playfair Display', serif; font-size: 1.05rem; font-weight: 700; color: var(--text-dark); }
+  .cat-pct-bar { height: 4px; background: var(--cream-dark); border-radius: 2px; margin-top: 6px; overflow: hidden; }
+  .cat-pct-fill { height: 100%; border-radius: 2px; }
+  .cat-pct-text { font-size: 0.68rem; color: var(--text-light); margin-top: 3px; }
+ 
   @media (max-width: 900px) {
     .summary-grid { grid-template-columns: repeat(2, 1fr); }
     .content-grid { grid-template-columns: 1fr; }
@@ -336,6 +355,10 @@
       <div class="tab" onclick="setSubTab(this,'gasto-variable')">🛒 Variables</div>
       <div class="tab" onclick="setSubTab(this,'gasto-fijo')">🏠 Fijos</div>
       <div class="tab" onclick="setSubTab(this,'ahorro')">🏦 Ahorros</div>
+      <div class="tab-separator"></div>
+      <select id="dayFilterSelect" class="day-filter-select" onchange="setDayFilter(this.value)">
+        <option value="all">📅 Todos los días</option>
+      </select>
     </div>
     <div class="sync-bar" id="syncBar">☁️ Sincronizado</div>
   </header>
@@ -466,6 +489,11 @@
           <div id="progressBars"></div>
         </div>
       </div>
+    </div>
+ 
+    <div class="cat-breakdown" id="catBreakdown">
+      <h3>📊 Desglose por Categoría</h3>
+      <div class="cat-grid" id="catGrid"></div>
     </div>
  
     <div id="viewFlow">
@@ -638,15 +666,16 @@ function setSyncStatus(status) {
 window.data = {};
 let currentYear, currentMonth;
 let activeFilter = 'all';
+let activeDayFilter = 'all';
 let deletingId = null;
 let selectedType = 'ingreso';
  
 const MONTHS = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 const CATEGORIES = {
-  ingreso: ['Salario','Freelance','Negocio','Inversiones','Alquiler','Bonificación','Otros ingresos'],
-  'gasto-variable': ['Supermercado','Restaurantes','Transporte','Ocio','Ropa','Salud','Tecnología','Otros'],
-  'gasto-fijo': ['Alquiler/Hipoteca','Servicios (luz/agua/gas)','Internet/Teléfono','Seguros','Suscripciones','Educación','Otros fijos'],
-  ahorro: ['Fondo de emergencia','Jubilación','Vacaciones','Inversión','Meta específica','Otros ahorros']
+  ingreso: ['Salario','Freelance','Negocio','Inversiones','Alquiler','Bonificación','Premio/Bono','Reembolso','Otros ingresos'],
+  'gasto-variable': ['Supermercado','Restaurantes','Comida rápida','Cafetería','Delivery','Cine','Entretenimiento','Streaming','Salidas/Bares','Transporte','Taxi/Uber','Ropa','Calzado','Salud','Farmacia','Tecnología','Videojuegos','Libros','Mascotas','Belleza/Cuidado personal','Deporte/Gimnasio','Viajes','Regalos','Otros variables'],
+  'gasto-fijo': ['Alquiler/Hipoteca','Servicios (luz/agua/gas)','Internet/Teléfono','Seguros','Suscripciones','Educación','AFP/Pensión','Cuotas/Créditos','Otros fijos'],
+  ahorro: ['Fondo de emergencia','Jubilación','Vacaciones','Inversión','Meta específica','Bachiller/Estudios','Tecnología','Viaje soñado','Otros ahorros']
 };
 const TYPE_ICONS = { ingreso:'💵','gasto-variable':'🛒','gasto-fijo':'🏠',ahorro:'🏦' };
 const TYPE_LABELS = { ingreso:'Ingreso','gasto-variable':'G. Variable','gasto-fijo':'G. Fijo',ahorro:'Ahorro' };
@@ -830,10 +859,32 @@ function renderSummary() {
   document.getElementById('balancePct').textContent = `${pct}% disponible`;
 }
  
+function setDayFilter(val) {
+  activeDayFilter = val;
+  renderTransactions();
+}
+ 
+function updateDaySelect() {
+  const txs = getMonthData(getKey());
+  const days = [...new Set(txs.map(t=>t.date))].sort((a,b)=>b.localeCompare(a));
+  const sel = document.getElementById('dayFilterSelect');
+  if (!sel) return;
+  const cur = activeDayFilter;
+  sel.innerHTML = '<option value="all">📅 Todos los días</option>';
+  days.forEach(d => {
+    const dt = new Date(d+'T00:00:00');
+    const label = `${dt.getDate()} de ${MONTHS[dt.getMonth()]}`;
+    sel.innerHTML += `<option value="${d}" ${d===cur?'selected':''}>${label}</option>`;
+  });
+  if (!days.includes(cur)) activeDayFilter = 'all';
+}
+ 
 function renderTransactions() {
+  updateDaySelect();
   const search = (document.getElementById('searchInput')?.value||'').toLowerCase();
   let txs = getMonthData(getKey());
   if (activeFilter !== 'all') txs = txs.filter(t=>t.type===activeFilter);
+  if (activeDayFilter !== 'all') txs = txs.filter(t=>t.date===activeDayFilter);
   if (search) txs = txs.filter(t=>t.desc.toLowerCase().includes(search)||(t.category||'').toLowerCase().includes(search));
  
   const grouped = {};
@@ -878,11 +929,12 @@ function renderCharts() {
   const { income, expense, savings, balance } = calcSummary(txs);
   const circ = 314;
   let offset = 0;
-  [
-    { id:'donutExpense', val:expense },
-    { id:'donutSavings', val:savings },
-    { id:'donutBalance', val:Math.max(0,balance) }
-  ].forEach(seg => {
+  const segs = [
+    { id:'donutExpense', val:expense, color:'#e74c3c' },
+    { id:'donutSavings', val:savings, color:'#c8933f' },
+    { id:'donutBalance', val:Math.max(0,balance), color:'#2d7d5b' }
+  ];
+  segs.forEach(seg => {
     const el = document.getElementById(seg.id);
     if (!el) return;
     const dash = income>0 ? Math.min((seg.val/income)*circ, circ) : 0;
@@ -893,11 +945,11 @@ function renderCharts() {
  
   const legend = document.getElementById('donutLegend');
   if (legend) legend.innerHTML = [
-    { label:'Ingresos', val:income, color:'#2d7d5b' },
-    { label:'Gastos', val:expense, color:'#e74c3c' },
-    { label:'Ahorros', val:savings, color:'#c8933f' },
-    { label:'Saldo', val:balance, color:'#1a2744' },
-  ].map(l=>`<div class="legend-item"><div class="legend-dot" style="background:${l.color}"></div><div><div class="legend-name">${l.label}</div><div class="legend-val">${fmt(l.val)}</div></div></div>`).join('');
+    { label:'Ingresos', val:income, color:'#2d7d5b', pct:100 },
+    { label:'Gastos', val:expense, color:'#e74c3c', pct:income>0?Math.round(expense/income*100):0 },
+    { label:'Ahorros', val:savings, color:'#c8933f', pct:income>0?Math.round(savings/income*100):0 },
+    { label:'Saldo', val:balance, color:'#1a2744', pct:income>0?Math.round(Math.max(0,balance)/income*100):0 },
+  ].map(l=>`<div class="legend-item"><div class="legend-dot" style="background:${l.color}"></div><div><div class="legend-name">${l.label} <span style="font-size:0.68rem;color:#7a8baa">${l.pct}%</span></div><div class="legend-val">${fmt(l.val)}</div></div></div>`).join('');
  
   const pb = document.getElementById('progressBars');
   if (pb) pb.innerHTML = [
@@ -905,6 +957,29 @@ function renderCharts() {
     { label:'Gastos', val:expense, pct:income>0?Math.round(expense/income*100):0, fill:'fill-red' },
     { label:'Ahorros', val:savings, pct:income>0?Math.round(savings/income*100):0, fill:'fill-gold' },
   ].map(i=>`<div class="progress-item"><div class="progress-info"><span class="progress-label">${i.label}</span><span class="progress-val">${fmt(i.val)} · ${i.pct}%</span></div><div class="progress-bar-bg"><div class="progress-bar-fill ${i.fill}" style="width:${Math.min(i.pct,100)}%"></div></div></div>`).join('');
+ 
+  // Category breakdown
+  const allTxs = getMonthData(getKey());
+  const catMap = {};
+  allTxs.forEach(t => {
+    const cat = t.category || 'Sin categoría';
+    if (!catMap[cat]) catMap[cat] = { total:0, type:t.type };
+    catMap[cat].total += t.amount;
+  });
+  const total = allTxs.reduce((s,t)=>s+t.amount,0) || 1;
+  const sorted = Object.entries(catMap).sort((a,b)=>b[1].total-a[1].total);
+  const catColors = { ingreso:'#2d7d5b', 'gasto-variable':'#e74c3c', 'gasto-fijo':'#c0392b', ahorro:'#c8933f' };
+  const grid = document.getElementById('catGrid');
+  if (grid) grid.innerHTML = sorted.map(([cat,{total:val,type}])=>{
+    const pct = Math.round(val/total*100);
+    const color = catColors[type]||'#7a8baa';
+    return `<div class="cat-card type-${type}">
+      <div class="cat-name" title="${esc(cat)}">${esc(cat)}</div>
+      <div class="cat-amount">${fmt(val)}</div>
+      <div class="cat-pct-bar"><div class="cat-pct-fill" style="width:${pct}%;background:${color}"></div></div>
+      <div class="cat-pct-text">${pct}% del total</div>
+    </div>`;
+  }).join('');
 }
  
 function renderFlow() {
@@ -1062,6 +1137,7 @@ window.importCSV = importCSV;
 window.goToMonth = goToMonth;
 window.render = render;
 window.traspasarSaldoMesAnterior = traspasarSaldoMesAnterior;
+window.setDayFilter = setDayFilter;
 </script>
 </body>
 </html>
