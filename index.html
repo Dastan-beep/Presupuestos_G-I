@@ -574,9 +574,19 @@ window.logout = async () => {
   document.getElementById('appScreen').style.display = 'none';
 };
  
+const EMAILS_PERMITIDOS = [
+  'diana.huamali.asmat@gmail.com',
+  'fmftvanessa@gmail.com'
+];
+ 
 onAuthStateChanged(auth, (user) => {
   showLoading(false);
   if (user) {
+    if (!EMAILS_PERMITIDOS.includes(user.email)) {
+      signOut(auth);
+      showToast('❌ Acceso no autorizado');
+      return;
+    }
     currentUser = user;
     document.getElementById('loginScreen').style.display = 'none';
     document.getElementById('appScreen').style.display = 'block';
