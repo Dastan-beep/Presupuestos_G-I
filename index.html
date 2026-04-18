@@ -3,6 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#2fbfa0">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Presupuesto G&amp;I">
+<link rel="manifest" href="manifest.json">
 <title>Presupuesto Personal</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
@@ -1149,6 +1155,14 @@ window.goToMonth = goToMonth;
 window.render = render;
 window.traspasarSaldoMesAnterior = traspasarSaldoMesAnterior;
 window.setDayFilter = setDayFilter;
+</script>
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/Presupuestos_G-I/sw.js')
+      .catch(err => console.log('SW error:', err));
+  });
+}
 </script>
 </body>
 </html>
