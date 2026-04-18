@@ -218,7 +218,7 @@
   /* FLOW */
   #viewTabs { display: block; }
   #viewFlow { display: none; }
-  .flow-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .flow-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 4px; }
   .flow-month-card { background: var(--white); border-radius: var(--radius); padding: 18px; box-shadow: var(--shadow); cursor: pointer; transition: all 0.2s; border: 2px solid transparent; position: relative; overflow: hidden; }
   .flow-month-card:hover { transform: translateY(-2px); border-color: var(--navy-light); }
   .flow-month-card.has-data::after { content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 3px; background: var(--gold); }
@@ -471,6 +471,11 @@
         </div>
       </div>
  
+      <div class="cat-breakdown" id="catBreakdown" style="margin-bottom:20px">
+        <h3>📊 Desglose por Categoría</h3>
+        <div class="cat-grid" id="catGrid"></div>
+      </div>
+ 
       <div class="charts-row">
         <div class="chart-card">
           <h3>Distribución del Presupuesto</h3>
@@ -489,11 +494,6 @@
           <div id="progressBars"></div>
         </div>
       </div>
-    </div>
- 
-    <div class="cat-breakdown" id="catBreakdown">
-      <h3>📊 Desglose por Categoría</h3>
-      <div class="cat-grid" id="catGrid"></div>
     </div>
  
     <div id="viewFlow">
