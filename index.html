@@ -1093,6 +1093,10 @@ function showToast(msg) {
 }
 
 // ─── SALDO ACUMULADO ─────────────────────────────────────
+function sinTraspasos(txs) {
+  return txs.filter(t => !(t.desc && t.desc.startsWith('Traspaso saldo')));
+}
+
 function renderAcumulado() {
   const allKeys = Object.keys(window.data).sort();
   if (allKeys.length === 0) {
@@ -1105,19 +1109,23 @@ function renderAcumulado() {
   }
   let totalAcum = 0, mesesPos = 0, mesesNeg = 0;
   allKeys.forEach(key => {
-    const { balance } = calcSummary(window.data[key]);
+    const txsSinTraspaso = sinTraspasos(window.data[key]);
+    const { balance } = calcSummary(txsSinTraspaso);
     totalAcum += balance;
     if (balance >= 0) mesesPos++; else mesesNeg++;
   });
   const prevDate = new Date(currentYear, currentMonth - 1, 1);
   const prevKey = prevDate.getFullYear() + '-' + String(prevDate.getMonth()+1).padStart(2,'0');
-  const prevBalance = window.data[prevKey] ? calcSummary(window.data[prevKey]).balance : 0;
+  const prevTxs = window.data[prevKey] ? sinTraspasos(window.data[prevKey]) : [];
+  const prevBalance = calcSummary(prevTxs).balance;
+  const currentKey = currentYear + '-' + String(currentMonth+1).padStart(2,'0');
+  const yaTraspasado = (window.data[currentKey] || []).some(t => t.desc && t.desc.includes('Traspaso saldo'));
   document.getElementById('acumTotal').textContent = fmt(totalAcum);
   document.getElementById('acumTotal').style.color = totalAcum >= 0 ? '#5de0a0' : '#ff7f7f';
   document.getElementById('acumSub').textContent = 'Acumulado de ' + allKeys.length + ' mes' + (allKeys.length!==1?'es':'');
   document.getElementById('acumMesesPos').textContent = mesesPos;
   document.getElementById('acumMesesNeg').textContent = mesesNeg;
-  document.getElementById('acumMesAnterior').textContent = fmt(prevBalance);
+  document.getElementById('acumMesAnterior').textContent = yaTraspasado ? 'Ya traspasado ✓' : fmt(prevBalance);
   document.getElementById('acumMesAnterior').className = 'acum-stat-val ' + (prevBalance >= 0 ? 'pos' : 'neg');
 }
 
