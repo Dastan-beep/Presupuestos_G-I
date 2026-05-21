@@ -266,7 +266,7 @@
   .acumulado-banner {
     background: linear-gradient(135deg, var(--navy) 0%, var(--navy-light) 100%);
     border-radius: var(--radius); padding: 18px 24px; margin-bottom: 20px;
-    display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px;
+    display: flex; align-items: stretch; justify-content: flex-start; flex-direction: column; gap: 0;
     box-shadow: var(--shadow-lg);
   }
   .acumulado-left { display: flex; align-items: center; gap: 14px; }
@@ -282,6 +282,16 @@
   .acum-stat-val.neg { color: #ff7f7f; }
   .traspaso-btn { background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.25); color: var(--white); padding: 8px 16px; border-radius: 50px; cursor: pointer; font-family: 'DM Sans', sans-serif; font-size: 0.78rem; font-weight: 600; transition: all 0.2s; }
   .traspaso-btn:hover { background: rgba(255,255,255,0.22); }
+
+  /* PCT BARS IN BANNER */
+  .acum-pct-row { display: flex; gap: 16px; flex-wrap: wrap; width: 100%; margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.1); }
+  .acum-pct-item { flex: 1; min-width: 90px; }
+  .acum-pct-top { display: flex; justify-content: space-between; margin-bottom: 4px; }
+  .acum-pct-label { font-size: 0.63rem; color: rgba(255,255,255,0.55); font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; }
+  .acum-pct-num { font-size: 0.72rem; font-weight: 700; color: var(--white); }
+  .acum-pct-track { height: 5px; background: rgba(255,255,255,0.12); border-radius: 3px; overflow: hidden; }
+  .acum-pct-fill { height: 100%; border-radius: 3px; transition: width 0.5s ease; }
+  .acum-pct-val { font-size: 0.68rem; color: rgba(255,255,255,0.45); margin-top: 3px; }
 
   .tab-separator { flex: 1; }
   .day-filter-select { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: var(--white); padding: 6px 12px; border-radius: 50px; font-family: 'DM Sans', sans-serif; font-size: 0.8rem; cursor: pointer; margin: auto 0; outline: none; }
@@ -403,31 +413,34 @@
   </header>
 
   <main>
-    <!-- SALDO ACUMULADO HISTÓRICO -->
+    <!-- SALDO DEL MES -->
     <div class="acumulado-banner" id="acumuladoBanner">
-      <div class="acumulado-left">
-        <div class="acumulado-icon">🏦</div>
-        <div>
-          <div class="acumulado-title">Saldo del Mes</div>
-          <div class="acumulado-amount" id="acumTotal">S/ 0.00</div>
-          <div class="acumulado-sub" id="acumSub">Ingresos menos gastos y ahorros</div>
+      <div style="width:100%;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;">
+        <div class="acumulado-left">
+          <div class="acumulado-icon">🏦</div>
+          <div>
+            <div class="acumulado-title">Saldo del Mes</div>
+            <div class="acumulado-amount" id="acumTotal">S/ 0.00</div>
+            <div class="acumulado-sub" id="acumSub">Ingresos menos gastos y ahorros</div>
+          </div>
         </div>
+        <div class="acumulado-stats">
+          <div class="acum-stat">
+            <div class="acum-stat-label">Meses positivos</div>
+            <div class="acum-stat-val pos" id="acumMesesPos">0</div>
+          </div>
+          <div class="acum-stat">
+            <div class="acum-stat-label">Meses negativos</div>
+            <div class="acum-stat-val neg" id="acumMesesNeg">0</div>
+          </div>
+          <div class="acum-stat">
+            <div class="acum-stat-label">Saldo mes anterior</div>
+            <div class="acum-stat-val" id="acumMesAnterior">S/ 0.00</div>
+          </div>
+        </div>
+        <button class="traspaso-btn" onclick="traspasarSaldoMesAnterior()">⟳ Traspasar saldo anterior al mes actual</button>
       </div>
-      <div class="acumulado-stats">
-        <div class="acum-stat">
-          <div class="acum-stat-label">Meses positivos</div>
-          <div class="acum-stat-val pos" id="acumMesesPos">0</div>
-        </div>
-        <div class="acum-stat">
-          <div class="acum-stat-label">Meses negativos</div>
-          <div class="acum-stat-val neg" id="acumMesesNeg">0</div>
-        </div>
-        <div class="acum-stat">
-          <div class="acum-stat-label">Saldo mes anterior</div>
-          <div class="acum-stat-val" id="acumMesAnterior">S/ 0.00</div>
-        </div>
-      </div>
-      <button class="traspaso-btn" onclick="traspasarSaldoMesAnterior()">⟳ Traspasar saldo anterior al mes actual</button>
+      <div class="acum-pct-row" id="acumPctBars"></div>
     </div>
 
     <div class="summary-grid">
@@ -1259,9 +1272,9 @@ function renderAcumulado() {
   const allKeys = Object.keys(window.data).sort();
   const currentKey = currentYear + '-' + String(currentMonth+1).padStart(2,'0');
 
-  // Saldo SOLO del mes actual (sin contar traspasos para no duplicar)
-  const currentTxsSinTraspaso = sinTraspasos(window.data[currentKey] || []);
-  const { income: curIncome, expense: curExpense, savings: curSavings, balance: currentBalance } = calcSummary(currentTxsSinTraspaso);
+  // Saldo del mes actual CON traspaso incluido (igual que las tarjetas de resumen)
+  const currentTxs = window.data[currentKey] || [];
+  const { income: curIncome, expense: curExpense, savings: curSavings, balance: currentBalance, gv, gf } = calcSummary(currentTxs);
 
   if (allKeys.length === 0) {
     document.getElementById('acumTotal').textContent = 'S/ 0.00';
@@ -1269,32 +1282,59 @@ function renderAcumulado() {
     document.getElementById('acumMesesPos').textContent = '0';
     document.getElementById('acumMesesNeg').textContent = '0';
     document.getElementById('acumMesAnterior').textContent = 'S/ 0.00';
+    const pb = document.getElementById('acumPctBars');
+    if (pb) pb.innerHTML = '';
     return;
   }
 
-  // Contar meses positivos y negativos (sin traspasos)
+  // Contar meses positivos y negativos (sin traspasos para no distorsionar histórico)
   let mesesPos = 0, mesesNeg = 0;
   allKeys.forEach(key => {
-    const txsSinTraspaso = sinTraspasos(window.data[key]);
-    const { balance } = calcSummary(txsSinTraspaso);
+    const { balance } = calcSummary(sinTraspasos(window.data[key]));
     if (balance >= 0) mesesPos++; else mesesNeg++;
   });
 
-  // Saldo del mes ANTERIOR (sin traspasos para no duplicar)
+  // Saldo del mes ANTERIOR (sin traspasos para calcular cuánto traspasar)
   const prevDate = new Date(currentYear, currentMonth - 1, 1);
   const prevKey = prevDate.getFullYear() + '-' + String(prevDate.getMonth()+1).padStart(2,'0');
-  const prevTxs = window.data[prevKey] ? sinTraspasos(window.data[prevKey]) : [];
-  const prevBalance = calcSummary(prevTxs).balance;
+  const prevBalance = calcSummary(sinTraspasos(window.data[prevKey] || [])).balance;
+  const yaTraspasado = currentTxs.some(t => t.desc && t.desc.includes('Traspaso saldo'));
 
-  const yaTraspasado = (window.data[currentKey] || []).some(t => t.desc && t.desc.includes('Traspaso saldo'));
+  // Porcentajes sobre ingresos
+  const base = curIncome || 1;
+  const pctGv  = Math.min(Math.round(gv  / base * 100), 100);
+  const pctGf  = Math.min(Math.round(gf  / base * 100), 100);
+  const pctAho = Math.min(Math.round(curSavings / base * 100), 100);
+  const pctRest = Math.max(Math.round(currentBalance / base * 100), 0);
 
   document.getElementById('acumTotal').textContent = fmt(currentBalance);
   document.getElementById('acumTotal').style.color = currentBalance >= 0 ? '#5de0a0' : '#ff7f7f';
-  document.getElementById('acumSub').textContent = `Ingresos ${fmt(curIncome)} · Gastos ${fmt(curExpense)} · Ahorros ${fmt(curSavings)}`;
+  document.getElementById('acumSub').textContent = `Ing ${fmt(curIncome)} · Gas ${fmt(curExpense)} · Aho ${fmt(curSavings)}`;
   document.getElementById('acumMesesPos').textContent = mesesPos;
   document.getElementById('acumMesesNeg').textContent = mesesNeg;
   document.getElementById('acumMesAnterior').textContent = yaTraspasado ? 'Ya traspasado ✓' : fmt(prevBalance);
   document.getElementById('acumMesAnterior').className = 'acum-stat-val ' + (prevBalance >= 0 ? 'pos' : 'neg');
+
+  // Barras de porcentaje
+  const pb = document.getElementById('acumPctBars');
+  if (!pb) return;
+  const bars = [
+    { label: 'G. Variable', pct: pctGv,  color: '#e74c3c', val: gv },
+    { label: 'G. Fijo',     pct: pctGf,  color: '#c0392b', val: gf },
+    { label: 'Ahorros',     pct: pctAho, color: '#c8933f', val: curSavings },
+    { label: 'Restante',    pct: pctRest,color: '#5de0a0', val: Math.max(currentBalance,0) },
+  ];
+  pb.innerHTML = bars.map(b => `
+    <div class="acum-pct-item">
+      <div class="acum-pct-top">
+        <span class="acum-pct-label">${b.label}</span>
+        <span class="acum-pct-num">${b.pct}%</span>
+      </div>
+      <div class="acum-pct-track">
+        <div class="acum-pct-fill" style="width:${b.pct}%;background:${b.color}"></div>
+      </div>
+      <div class="acum-pct-val">${fmt(b.val)}</div>
+    </div>`).join('');
 }
 
 async function traspasarSaldoMesAnterior() {
