@@ -597,10 +597,23 @@ onAuthStateChanged(auth, (user) => {
         window.data[t.monthKey].push({ ...t, id: docSnap.id });
       });
       setSyncStatus('synced');
-      render();
+      // If first load, jump to most recent month with data
+      if (!window._appInited) {
+        window._appInited = true;
+        const keys = Object.keys(window.data).sort();
+        if (keys.length > 0) {
+          const lastKey = keys[keys.length - 1];
+          const [y, m] = lastKey.split('-');
+          window._jumpYear = parseInt(y);
+          window._jumpMonth = parseInt(m) - 1;
+        }
+        initApp();
+      } else {
+        render();
+      }
     }, (err) => { setSyncStatus('error'); console.error(err); });
     window._currentUserId = user.uid;
-    initApp();
+    // initApp called after first snapshot so data is ready
   } else {
     document.getElementById('loginScreen').style.display = 'flex';
     document.getElementById('appScreen').style.display = 'none';
@@ -652,8 +665,14 @@ const TYPE_LABELS = { ingreso:'Ingreso','gasto-variable':'G. Variable','gasto-fi
 
 function initApp() {
   const now = new Date();
-  currentYear = now.getFullYear();
-  currentMonth = now.getMonth();
+  // If we have data, jump to most recent month
+  if (window._jumpYear !== undefined) {
+    currentYear = window._jumpYear;
+    currentMonth = window._jumpMonth;
+  } else {
+    currentYear = now.getFullYear();
+    currentMonth = now.getMonth();
+  }
   document.getElementById('fDate').value = now.toISOString().split('T')[0];
   updateCategorySelect();
   render();
