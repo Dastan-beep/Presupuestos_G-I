@@ -11,7 +11,7 @@
 <link rel="manifest" href="manifest.json">
 <title>Presupuesto Personal</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
-<style>
+</style>
   :root {
     --navy: #1a2744;
     --navy-mid: #243558;
@@ -296,7 +296,23 @@
   .cat-card.type-gasto-fijo { border-left-color: var(--red); }
   .cat-card.type-ingreso { border-left-color: var(--green); }
   .cat-card.type-ahorro { border-left-color: var(--gold); }
-  .cat-card.active-filter {
+  .cat-name { font-size: 0.78rem; font-weight: 600; color: var(--text-mid); margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .cat-amount { font-family: 'Playfair Display', serif; font-size: 1.05rem; font-weight: 700; color: var(--text-dark); }
+  .cat-pct-bar { height: 4px; background: var(--cream-dark); border-radius: 2px; margin-top: 6px; overflow: hidden; }
+  .cat-pct-fill { height: 100%; border-radius: 2px; }
+  .cat-pct-text { font-size: 0.68rem; color: var(--text-light); margin-top: 3px; }
+
+  @media (max-width: 900px) {
+    .summary-grid { grid-template-columns: repeat(2, 1fr); }
+    .content-grid { grid-template-columns: 1fr; }
+    .header-inner { padding: 12px 16px; }
+    main { padding: 16px; }
+    .tabs { padding: 0 16px; }
+    .flow-grid { grid-template-columns: repeat(2, 1fr); }
+    .charts-row { grid-template-columns: 1fr; }
+    .user-name { display: none; }
+  }
+.cat-card.active-filter {
   border: 2px solid var(--gold);
   transform: translateY(-2px);
 }
@@ -356,22 +372,6 @@
   font-size: 0.85rem;
   line-height: 1.5;
 }
-  .cat-name { font-size: 0.78rem; font-weight: 600; color: var(--text-mid); margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .cat-amount { font-family: 'Playfair Display', serif; font-size: 1.05rem; font-weight: 700; color: var(--text-dark); }
-  .cat-pct-bar { height: 4px; background: var(--cream-dark); border-radius: 2px; margin-top: 6px; overflow: hidden; }
-  .cat-pct-fill { height: 100%; border-radius: 2px; }
-  .cat-pct-text { font-size: 0.68rem; color: var(--text-light); margin-top: 3px; }
-
-  @media (max-width: 900px) {
-    .summary-grid { grid-template-columns: repeat(2, 1fr); }
-    .content-grid { grid-template-columns: 1fr; }
-    .header-inner { padding: 12px 16px; }
-    main { padding: 16px; }
-    .tabs { padding: 0 16px; }
-    .flow-grid { grid-template-columns: repeat(2, 1fr); }
-    .charts-row { grid-template-columns: 1fr; }
-    .user-name { display: none; }
-  }
 </style>
 </head>
 <body>
@@ -426,6 +426,7 @@
         <option value="all">📅 Todos los días</option>
       </select>
     </div>
+<div id="catFilterChipContainer"></div>
     <div class="sync-bar" id="syncBar">☁️ Sincronizado</div>
   </header>
 
@@ -435,9 +436,9 @@
       <div class="acumulado-left">
         <div class="acumulado-icon">🏦</div>
         <div>
-          <div class="acumulado-title">Saldo Disponible del Mes</div>
+          <div class="acumulado-title"> Saldo Disponible del Mes</div>
           <div class="acumulado-amount" id="acumTotal">S/ 0.00</div>
-          <div class="acumulado-sub" id="acumSub">Saldo real disponible para este mes</div>
+          <div class="acumulado-sub" id="acumSub"> Saldo real disponible para este mes</div>
         </div>
       </div>
       <div class="acumulado-stats">
@@ -537,13 +538,17 @@
         </div>
       </div>
 
-     <div class="analysis-card">
-  <div class="analysis-header">
-    <h3>📈 Análisis Financiero</h3>
-  </div>
+      <div class="cat-breakdown" id="catBreakdown" style="margin-bottom:20px">
+<div class="analysis-card">
 
-  <div id="analysisContent"></div>
+<div class="analysis-header">
+<h3>📈 Análisis Financiero</h3>
 </div>
+
+<div id="analysisContent"></div>
+
+</div>
+
         <h3>📊 Desglose por Categoría</h3>
         <div class="cat-grid" id="catGrid"></div>
       </div>
@@ -783,21 +788,17 @@ function fmt(n) {
 
 // ─── NAV ─────────────────────────────────────────────────
 function changeMonth(dir) {
-  currentMonth += dir;
-
-  if (currentMonth < 0) {
-    currentMonth = 11;
-    currentYear--;
-  }
-
-  if (currentMonth > 11) {
-    currentMonth = 0;
-    currentYear++;
-  }
-
-  activeCatFilter = null;
-
-  render();
+currentMonth += dir;
+if (currentMonth < 0) {
+currentMonth = 11;
+currentYear--;
+}
+if (currentMonth > 11) {
+currentMonth = 0;
+currentYear++;
+}
+activeCatFilter = null;
+render();
 }
 
 function showTab(tab) {
@@ -810,22 +811,175 @@ function showTab(tab) {
     document.getElementById('viewFlow').style.display = 'none';
   }
 }
-
 function setSubTab(el, filter) {
+document.querySelectorAll('.tab')
+.forEach(t => t.classList.remove('active'));
+el.classList.add('active');
+activeFilter = filter;
+activeCatFilter = null;
+renderTransactions();
+renderCatBreakdown();
+updateCatFilterChip();
+}
 
-  document.querySelectorAll('.tab')
-    .forEach(t => t.classList.remove('active'));
+function selectType(btn) {
+  document.querySelectorAll('.type-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  selectedType = btn.dataset.type;
+  updateCategorySelect();
+}
 
-  el.classList.add('active');
+function updateCategorySelect() {
+  const sel = document.getElementById('fCategory');
+  sel.innerHTML = '<option value="">— Categoría —</option>';
+  (CATEGORIES[selectedType]||[]).forEach(c => sel.innerHTML += `<option value="${c}">${c}</option>`);
+}
+// ─────────────────────────────────────────────
+// FILTRO POR CATEGORÍA
+// ─────────────────────────────────────────────
 
-  activeFilter = filter;
+function filterByCategory(cat) {
 
-  activeCatFilter = null;
+if (activeCatFilter === cat) {
 
-  renderTransactions();
+activeCatFilter = null;
 
-  renderCatBreakdown();
-  function generateFinancialAnalysis() {
+} else {
+
+activeCatFilter = cat;
+
+document.querySelector('.transactions-panel')
+?.scrollIntoView({
+behavior: 'smooth',
+block: 'start'
+});
+}
+
+renderTransactions();
+
+renderCatBreakdown();
+
+updateCatFilterChip();
+}
+
+function updateCatFilterChip() {
+
+const container = document.getElementById('catFilterChipContainer');
+
+if (!container) return;
+
+if (activeCatFilter) {
+
+container.innerHTML = `
+<button
+class="cat-filter-chip"
+onclick="filterByCategory('${esc(activeCatFilter)}')">
+
+${esc(activeCatFilter)} ✕
+
+</button>
+`;
+
+} else {
+
+container.innerHTML = '';
+}
+}
+
+
+// ─── SAVE ─────────────────────────────────────────────────
+async function saveTransaction() {
+  const desc = document.getElementById('fDesc').value.trim();
+  const amount = parseFloat(document.getElementById('fAmount').value);
+  const date = document.getElementById('fDate').value;
+  const category = document.getElementById('fCategory').value;
+  const note = document.getElementById('fNote').value.trim();
+  const editId = document.getElementById('editingId').value;
+
+  if (!desc) { showToast('⚠️ Escribe una descripción'); return; }
+  if (!amount || amount <= 0) { showToast('⚠️ Ingresa un monto válido'); return; }
+  if (!date) { showToast('⚠️ Selecciona una fecha'); return; }
+
+  const d = new Date(date + 'T00:00:00');
+  const monthKey = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+  const id = editId || (Date.now().toString(36) + Math.random().toString(36).slice(2));
+
+  const tx = { id, type: selectedType, desc, amount, date, category, note, monthKey };
+
+  document.getElementById('submitBtn').disabled = true;
+  try {
+    await window._saveToFirestore(tx);
+    showToast(editId ? '✅ Registro actualizado' : '✅ Movimiento registrado');
+    clearForm();
+  } catch(e) {
+    showToast('❌ Error al guardar');
+    console.error(e);
+  }
+  document.getElementById('submitBtn').disabled = false;
+}
+
+function clearForm() {
+  document.getElementById('fDesc').value = '';
+  document.getElementById('fAmount').value = '';
+  document.getElementById('fNote').value = '';
+  document.getElementById('fCategory').value = '';
+  document.getElementById('editingId').value = '';
+  document.getElementById('formTitle').textContent = 'Registrar Movimiento';
+  document.getElementById('submitBtn').textContent = '＋ Registrar Movimiento';
+  document.getElementById('submitBtn').classList.remove('editing');
+  document.getElementById('cancelBtn').style.display = 'none';
+}
+
+function startEdit(id) {
+  let tx = null;
+  for (const k in window.data) {
+    tx = window.data[k].find(t => t.id === id);
+    if (tx) break;
+  }
+  if (!tx) return;
+  selectedType = tx.type;
+  document.getElementById('fDesc').value = tx.desc;
+  document.getElementById('fAmount').value = tx.amount;
+  document.getElementById('fDate').value = tx.date;
+  document.getElementById('fNote').value = tx.note || '';
+  document.getElementById('editingId').value = id;
+  document.getElementById('formTitle').textContent = 'Editar Movimiento';
+  document.getElementById('submitBtn').textContent = '💾 Guardar Cambios';
+  document.getElementById('submitBtn').classList.add('editing');
+  document.getElementById('cancelBtn').style.display = 'block';
+  document.querySelectorAll('.type-btn').forEach(b => {
+    b.classList.remove('active');
+    if (b.dataset.type === tx.type) b.classList.add('active');
+  });
+  updateCategorySelect();
+  document.getElementById('fCategory').value = tx.category || '';
+  document.querySelector('.form-panel').scrollIntoView({ behavior: 'smooth' });
+}
+
+function cancelEdit() { clearForm(); }
+
+function deleteTransaction(id) {
+  deletingId = id;
+  document.getElementById('deleteModal').classList.add('open');
+}
+
+async function confirmDelete() {
+  if (!deletingId) return;
+  try {
+    await window._deleteFromFirestore(deletingId);
+    showToast('🗑️ Registro eliminado');
+  } catch(e) {
+    showToast('❌ Error al eliminar');
+  }
+  closeModal();
+  deletingId = null;
+}
+
+function closeModal() { document.getElementById('deleteModal').classList.remove('open'); }
+document.getElementById('deleteModal').addEventListener('click', function(e) { if(e.target===this) closeModal(); });
+
+// ─── RENDER ───────────────────────────────────────────────
+function generateFinancialAnalysis() {
 
   const txs = getMonthData(getKey());
 
@@ -851,7 +1005,6 @@ function setSubTab(el, filter) {
   gastos.forEach(g => {
 
     if (!categories[g.category]) {
-
       categories[g.category] = 0;
     }
 
@@ -950,163 +1103,6 @@ function setSubTab(el, filter) {
 
   return html;
 }
-  updateCatFilterChip();
-}
-
-function selectType(btn) {
-  document.querySelectorAll('.type-btn').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-  selectedType = btn.dataset.type;
-  updateCategorySelect();
-}
-
-  // ─── FILTRO POR CATEGORÍA ─────────────────────────────────
-
-function filterByCategory(cat) {
-
-  if (activeCatFilter === cat) {
-
-    activeCatFilter = null;
-
-  } else {
-
-    activeCatFilter = cat;
-
-    document.querySelector('.transactions-panel')
-      ?.scrollIntoView({
-        behavior: 'smooth',
-        block: 'start'
-      });
-  }
-
-  renderTransactions();
-
-  renderCatBreakdown();
-
-  updateCatFilterChip();
-}
-
-function updateCatFilterChip() {
-
-  const container = document.getElementById('catFilterChipContainer');
-
-  if (!container) return;
-
-  if (activeCatFilter) {
-
-    container.innerHTML = `
-      <button class="cat-filter-chip"
-              onclick="filterByCategory('${esc(activeCatFilter)}')">
-
-        ${esc(activeCatFilter)} ✕
-
-      </button>
-    `;
-
-  } else {
-
-    container.innerHTML = '';
-
-  }
-}
-function updateCategorySelect() {
-  const sel = document.getElementById('fCategory');
-  sel.innerHTML = '<option value="">— Categoría —</option>';
-  (CATEGORIES[selectedType]||[]).forEach(c => sel.innerHTML += `<option value="${c}">${c}</option>`);
-}
-
-// ─── SAVE ─────────────────────────────────────────────────
-async function saveTransaction() {
-  const desc = document.getElementById('fDesc').value.trim();
-  const amount = parseFloat(document.getElementById('fAmount').value);
-  const date = document.getElementById('fDate').value;
-  const category = document.getElementById('fCategory').value;
-  const note = document.getElementById('fNote').value.trim();
-  const editId = document.getElementById('editingId').value;
-
-  if (!desc) { showToast('⚠️ Escribe una descripción'); return; }
-  if (!amount || amount <= 0) { showToast('⚠️ Ingresa un monto válido'); return; }
-  if (!date) { showToast('⚠️ Selecciona una fecha'); return; }
-
-  const d = new Date(date + 'T00:00:00');
-  const monthKey = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
-  const id = editId || (Date.now().toString(36) + Math.random().toString(36).slice(2));
-
-  const tx = { id, type: selectedType, desc, amount, date, category, note, monthKey };
-
-  document.getElementById('submitBtn').disabled = true;
-  try {
-    await window._saveToFirestore(tx);
-    showToast(editId ? '✅ Registro actualizado' : '✅ Movimiento registrado');
-    clearForm();
-  } catch(e) {
-    showToast('❌ Error al guardar');
-    console.error(e);
-  }
-  document.getElementById('submitBtn').disabled = false;
-}
-
-function clearForm() {
-  document.getElementById('fDesc').value = '';
-  document.getElementById('fAmount').value = '';
-  document.getElementById('fNote').value = '';
-  document.getElementById('fCategory').value = '';
-  document.getElementById('editingId').value = '';
-  document.getElementById('formTitle').textContent = 'Registrar Movimiento';
-  document.getElementById('submitBtn').textContent = '＋ Registrar Movimiento';
-  document.getElementById('submitBtn').classList.remove('editing');
-  document.getElementById('cancelBtn').style.display = 'none';
-}
-
-function startEdit(id) {
-  let tx = null;
-  for (const k in window.data) {
-    tx = window.data[k].find(t => t.id === id);
-    if (tx) break;
-  }
-  if (!tx) return;
-  selectedType = tx.type;
-  document.getElementById('fDesc').value = tx.desc;
-  document.getElementById('fAmount').value = tx.amount;
-  document.getElementById('fDate').value = tx.date;
-  document.getElementById('fNote').value = tx.note || '';
-  document.getElementById('editingId').value = id;
-  document.getElementById('formTitle').textContent = 'Editar Movimiento';
-  document.getElementById('submitBtn').textContent = '💾 Guardar Cambios';
-  document.getElementById('submitBtn').classList.add('editing');
-  document.getElementById('cancelBtn').style.display = 'block';
-  document.querySelectorAll('.type-btn').forEach(b => {
-    b.classList.remove('active');
-    if (b.dataset.type === tx.type) b.classList.add('active');
-  });
-  updateCategorySelect();
-  document.getElementById('fCategory').value = tx.category || '';
-  document.querySelector('.form-panel').scrollIntoView({ behavior: 'smooth' });
-}
-
-function cancelEdit() { clearForm(); }
-
-function deleteTransaction(id) {
-  deletingId = id;
-  document.getElementById('deleteModal').classList.add('open');
-}
-
-async function confirmDelete() {
-  if (!deletingId) return;
-  try {
-    await window._deleteFromFirestore(deletingId);
-    showToast('🗑️ Registro eliminado');
-  } catch(e) {
-    showToast('❌ Error al eliminar');
-  }
-  closeModal();
-  deletingId = null;
-}
-
-function closeModal() { document.getElementById('deleteModal').classList.remove('open'); }
-document.getElementById('deleteModal').addEventListener('click', function(e) { if(e.target===this) closeModal(); });
-
-// ─── RENDER ───────────────────────────────────────────────
 function render() {
   if (!document.getElementById('currentMonthLabel')) return;
   document.getElementById('currentMonthLabel').textContent = `${MONTHS[currentMonth]} ${currentYear}`;
@@ -1114,6 +1110,14 @@ function render() {
   renderTransactions();
   renderCharts();
   renderAcumulado();
+const analysis = document.getElementById('analysisContent');
+
+if (analysis) {
+
+analysis.innerHTML =
+generateFinancialAnalysis();
+}
+
 }
 
 function calcSummary(txs) {
@@ -1158,16 +1162,26 @@ function updateDaySelect() {
   });
   if (!days.includes(cur)) activeDayFilter = 'all';
 }
+const analysis =
+  document.getElementById('analysisContent');
+
+if (analysis) {
+
+  analysis.innerHTML =
+    generateFinancialAnalysis();
+}
 
 function renderTransactions() {
   updateDaySelect();
   const search = (document.getElementById('searchInput')?.value||'').toLowerCase();
   let txs = getMonthData(getKey());
   if (activeFilter !== 'all') txs = txs.filter(t=>t.type===activeFilter);
- if (activeCatFilter)
-  txs = txs.filter(
-    t => (t.category || 'Sin categoría') === activeCatFilter
-  );
+  if (activeDayFilter !== 'all') txs = txs.filter(t=>t.date===activeDayFilter);
+if (activeCatFilter)
+txs = txs.filter(
+t =>
+(t.category || 'Sin categoría') === activeCatFilter
+);
   if (search) txs = txs.filter(t=>t.desc.toLowerCase().includes(search)||(t.category||'').toLowerCase().includes(search));
 
   const grouped = {};
@@ -1177,7 +1191,7 @@ function renderTransactions() {
   if (!list) return;
 
   if (sortedDates.length===0) {
-    list.innerHTML = `<div class="empty-state"><div class="empty-icon">📭</div><p>
+    list.innerHTML = `<div class="empty-state"><div class="empty-icon">📭</div <p>
   ${
     activeCatFilter
       ? `Sin movimientos en "${activeCatFilter}"`
@@ -1262,13 +1276,14 @@ function renderCharts() {
   if (grid) grid.innerHTML = sorted.map(([cat,{total:val,type}])=>{
     const pct = Math.round(val/total*100);
     const color = catColors[type]||'#7a8baa';
-    return `<div class="
-  cat-card
-  type-${item.type}
-  ${activeCatFilter===item.category?'active-filter':''}
+    return ` <div class="
+cat-card
+type-${item.type}
+${activeCatFilter===item.category?'active-filter':''}
 "
 onclick="filterByCategory('${esc(item.category)}')"
 style="cursor:pointer">
+
       <div class="cat-name" title="${esc(cat)}">${esc(cat)}</div>
       <div class="cat-amount">${fmt(val)}</div>
       <div class="cat-pct-bar"><div class="cat-pct-fill" style="width:${pct}%;background:${color}"></div></div>
@@ -1308,13 +1323,7 @@ function renderFlow() {
 
 function goToMonth(year, month) {
   currentYear = year; currentMonth = month;
-  showTab('tabs'); render(); const analysis = document.getElementById('analysisContent');
-
-if (analysis) {
-
-  analysis.innerHTML =
-    generateFinancialAnalysis();
-};
+  showTab('tabs'); render();
 }
 
 // ─── EXPORT / IMPORT ─────────────────────────────────────
@@ -1415,80 +1424,81 @@ function renderAcumulado() {
 
 async function traspasarSaldoMesAnterior() {
 
-  const prevDate = new Date(currentYear, currentMonth - 1, 1);
+const prevDate = new Date(currentYear, currentMonth - 1, 1);
 
-  const prevKey =
-    prevDate.getFullYear() +
-    '-' +
-    String(prevDate.getMonth() + 1).padStart(2,'0');
+const prevKey =
+prevDate.getFullYear() +
+'-' +
+String(prevDate.getMonth() + 1).padStart(2,'0');
 
-  const currentKey = getKey();
+const currentKey = getKey();
 
-  const currentTxs = window.data[currentKey] || [];
+const currentTxs = window.data[currentKey] || [];
 
-  const yaExiste = currentTxs.some(
-    t => t.desc &&
-    t.desc.includes('Traspaso saldo')
-  );
+const yaExiste = currentTxs.some(
+t =>
+t.desc &&
+t.desc.includes('Traspaso saldo')
+);
 
-  if (yaExiste) {
+if (yaExiste) {
 
-    showToast('⚠️ El saldo ya fue traspasado');
+showToast('⚠️ El saldo ya fue traspasado');
 
-    return;
-  }
+return;
+}
 
-  const prevTxs = (window.data[prevKey] || [])
-    .filter(t =>
-      !(t.desc && t.desc.includes('Traspaso saldo'))
-    );
+const prevTxs = (window.data[prevKey] || [])
+.filter(t =>
+!(t.desc && t.desc.includes('Traspaso saldo'))
+);
 
-  const { balance } = calcSummary(prevTxs);
+const { balance } = calcSummary(prevTxs);
 
-  if (balance <= 0) {
+if (balance <= 0) {
 
-    showToast('⚠️ No hay saldo positivo para traspasar');
+showToast('⚠️ No hay saldo positivo para traspasar');
 
-    return;
-  }
+return;
+}
 
-  const tx = {
+const tx = {
 
-    id:
-      Date.now().toString(36) +
-      Math.random().toString(36).slice(2),
+id:
+Date.now().toString(36) +
+Math.random().toString(36).slice(2),
 
-    type: 'ingreso',
+type: 'ingreso',
 
-    desc: `Traspaso saldo ${prevKey}`,
+desc: `Traspaso saldo ${prevKey}`,
 
-    amount: balance,
+amount: balance,
 
-    date:
-      `${currentYear}-${String(currentMonth+1).padStart(2,'0')}-01`,
+date:
+`${currentYear}-${String(currentMonth+1).padStart(2,'0')}-01`,
 
-    category: 'Traspaso',
+category: 'Traspaso',
 
-    note:
-      'Saldo restante del mes anterior',
+note:
+'Saldo restante del mes anterior',
 
-    monthKey: currentKey
-  };
+monthKey: currentKey
+};
 
-  try {
+try {
 
-    await window._saveToFirestore(tx);
+await window._saveToFirestore(tx);
 
-    showToast(
-      `✅ Traspaso realizado: ${fmt(balance)}`
-    );
+showToast(
+`✅ Traspaso realizado: ${fmt(balance)}`
+);
 
-  } catch(e) {
+} catch(e) {
 
-    console.error(e);
+console.error(e);
 
-    showToast('❌ Error al traspasar');
-  }
+showToast('❌ Error al traspasar');
+}
 }
 
 // Expose needed functions
@@ -1519,3 +1529,4 @@ if ('serviceWorker' in navigator) {
 </script>
 </body>
 </html>
+
