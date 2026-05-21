@@ -11,7 +11,7 @@
 <link rel="manifest" href="manifest.json">
 <title>Presupuesto Personal</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
-</style>
+<style>
   :root {
     --navy: #1a2744;
     --navy-mid: #243558;
@@ -312,66 +312,6 @@
     .charts-row { grid-template-columns: 1fr; }
     .user-name { display: none; }
   }
-.cat-card.active-filter {
-  border: 2px solid var(--gold);
-  transform: translateY(-2px);
-}
-
-.cat-filter-chip {
-  background: var(--gold);
-  color: white;
-  border: none;
-  padding: 8px 14px;
-  border-radius: 50px;
-  cursor: pointer;
-  font-weight: 600;
-}
-
-.analysis-card {
-  margin-top: 20px;
-  background: white;
-  border-radius: var(--radius);
-  padding: 22px;
-  box-shadow: var(--shadow);
-}
-
-.analysis-header {
-  margin-bottom: 14px;
-}
-
-.insight-item {
-  display: flex;
-  gap: 12px;
-  padding: 14px;
-  border-radius: 12px;
-  margin-bottom: 10px;
-}
-
-.insight-item.warning {
-  background: #fff6e5;
-}
-
-.insight-item.alert {
-  background: #ffecec;
-}
-
-.insight-item.good {
-  background: #edf7f2;
-}
-
-.insight-icon {
-  font-size: 1.5rem;
-}
-
-.insight-title {
-  font-weight: 700;
-  margin-bottom: 4px;
-}
-
-.insight-desc {
-  font-size: 0.85rem;
-  line-height: 1.5;
-}
 </style>
 </head>
 <body>
@@ -426,7 +366,6 @@
         <option value="all">📅 Todos los días</option>
       </select>
     </div>
-<div id="catFilterChipContainer"></div>
     <div class="sync-bar" id="syncBar">☁️ Sincronizado</div>
   </header>
 
@@ -436,9 +375,9 @@
       <div class="acumulado-left">
         <div class="acumulado-icon">🏦</div>
         <div>
-          <div class="acumulado-title"> Saldo Disponible del Mes</div>
+          <div class="acumulado-title">Saldo Acumulado Total</div>
           <div class="acumulado-amount" id="acumTotal">S/ 0.00</div>
-          <div class="acumulado-sub" id="acumSub"> Saldo real disponible para este mes</div>
+          <div class="acumulado-sub" id="acumSub">Suma de saldos de todos los meses</div>
         </div>
       </div>
       <div class="acumulado-stats">
@@ -539,16 +478,6 @@
       </div>
 
       <div class="cat-breakdown" id="catBreakdown" style="margin-bottom:20px">
-<div class="analysis-card">
-
-<div class="analysis-header">
-<h3>📈 Análisis Financiero</h3>
-</div>
-
-<div id="analysisContent"></div>
-
-</div>
-
         <h3>📊 Desglose por Categoría</h3>
         <div class="cat-grid" id="catGrid"></div>
       </div>
@@ -756,7 +685,6 @@ window.data = {};
 let currentYear, currentMonth;
 let activeFilter = 'all';
 let activeDayFilter = 'all';
-let activeCatFilter = null;
 let deletingId = null;
 let selectedType = 'ingreso';
 
@@ -788,17 +716,10 @@ function fmt(n) {
 
 // ─── NAV ─────────────────────────────────────────────────
 function changeMonth(dir) {
-currentMonth += dir;
-if (currentMonth < 0) {
-currentMonth = 11;
-currentYear--;
-}
-if (currentMonth > 11) {
-currentMonth = 0;
-currentYear++;
-}
-activeCatFilter = null;
-render();
+  currentMonth += dir;
+  if (currentMonth < 0) { currentMonth = 11; currentYear--; }
+  if (currentMonth > 11) { currentMonth = 0; currentYear++; }
+  render();
 }
 
 function showTab(tab) {
@@ -811,15 +732,12 @@ function showTab(tab) {
     document.getElementById('viewFlow').style.display = 'none';
   }
 }
+
 function setSubTab(el, filter) {
-document.querySelectorAll('.tab')
-.forEach(t => t.classList.remove('active'));
-el.classList.add('active');
-activeFilter = filter;
-activeCatFilter = null;
-renderTransactions();
-renderCatBreakdown();
-updateCatFilterChip();
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  activeFilter = filter;
+  renderTransactions();
 }
 
 function selectType(btn) {
@@ -834,58 +752,6 @@ function updateCategorySelect() {
   sel.innerHTML = '<option value="">— Categoría —</option>';
   (CATEGORIES[selectedType]||[]).forEach(c => sel.innerHTML += `<option value="${c}">${c}</option>`);
 }
-// ─────────────────────────────────────────────
-// FILTRO POR CATEGORÍA
-// ─────────────────────────────────────────────
-
-function filterByCategory(cat) {
-
-if (activeCatFilter === cat) {
-
-activeCatFilter = null;
-
-} else {
-
-activeCatFilter = cat;
-
-document.querySelector('.transactions-panel')
-?.scrollIntoView({
-behavior: 'smooth',
-block: 'start'
-});
-}
-
-renderTransactions();
-
-renderCatBreakdown();
-
-updateCatFilterChip();
-}
-
-function updateCatFilterChip() {
-
-const container = document.getElementById('catFilterChipContainer');
-
-if (!container) return;
-
-if (activeCatFilter) {
-
-container.innerHTML = `
-<button
-class="cat-filter-chip"
-onclick="filterByCategory('${esc(activeCatFilter)}')">
-
-${esc(activeCatFilter)} ✕
-
-</button>
-`;
-
-} else {
-
-container.innerHTML = '';
-}
-}
-
 
 // ─── SAVE ─────────────────────────────────────────────────
 async function saveTransaction() {
@@ -979,130 +845,6 @@ function closeModal() { document.getElementById('deleteModal').classList.remove(
 document.getElementById('deleteModal').addEventListener('click', function(e) { if(e.target===this) closeModal(); });
 
 // ─── RENDER ───────────────────────────────────────────────
-function generateFinancialAnalysis() {
-
-  const txs = getMonthData(getKey());
-
-  const gastos = txs.filter(t =>
-    t.type === 'gasto-variable' ||
-    t.type === 'gasto-fijo'
-  );
-
-  if (!gastos.length) {
-
-    return `
-      <div class="empty-state">
-        Aún no hay suficientes movimientos.
-      </div>
-    `;
-  }
-
-  const totalGastos =
-    gastos.reduce((a,b)=>a+Number(b.amount||0),0);
-
-  const categories = {};
-
-  gastos.forEach(g => {
-
-    if (!categories[g.category]) {
-      categories[g.category] = 0;
-    }
-
-    categories[g.category] += Number(g.amount || 0);
-  });
-
-  const ordered =
-    Object.entries(categories)
-      .sort((a,b)=>b[1]-a[1]);
-
-  const highest = ordered[0];
-
-  let html = '';
-
-  if (highest) {
-
-    html += `
-      <div class="insight-item warning">
-
-        <div class="insight-icon">⚠️</div>
-
-        <div>
-
-          <div class="insight-title">
-            Mayor gasto detectado
-          </div>
-
-          <div class="insight-desc">
-
-            Estás gastando más en
-
-            <strong>${highest[0]}</strong>
-
-            con un total de
-
-            <strong>${fmt(highest[1])}</strong>
-
-          </div>
-
-        </div>
-
-      </div>
-    `;
-  }
-
-  if (totalGastos > 1200) {
-
-    html += `
-      <div class="insight-item alert">
-
-        <div class="insight-icon">🚨</div>
-
-        <div>
-
-          <div class="insight-title">
-            Gastos elevados
-          </div>
-
-          <div class="insight-desc">
-
-            Tus gastos están superando
-            niveles saludables.
-
-            Reduce consumos variables.
-
-          </div>
-
-        </div>
-
-      </div>
-    `;
-  }
-
-  html += `
-    <div class="insight-item good">
-
-      <div class="insight-icon">💡</div>
-
-      <div>
-
-        <div class="insight-title">
-          Recomendación
-        </div>
-
-        <div class="insight-desc">
-
-          Intenta ahorrar mínimo
-          el 20% de tus ingresos.
-
-        </div>
-
-      </div>
-
-    </div>
-  `;
-
-  return html;
-}
 function render() {
   if (!document.getElementById('currentMonthLabel')) return;
   document.getElementById('currentMonthLabel').textContent = `${MONTHS[currentMonth]} ${currentYear}`;
@@ -1110,14 +852,6 @@ function render() {
   renderTransactions();
   renderCharts();
   renderAcumulado();
-const analysis = document.getElementById('analysisContent');
-
-if (analysis) {
-
-analysis.innerHTML =
-generateFinancialAnalysis();
-}
-
 }
 
 function calcSummary(txs) {
@@ -1162,14 +896,6 @@ function updateDaySelect() {
   });
   if (!days.includes(cur)) activeDayFilter = 'all';
 }
-const analysis =
-  document.getElementById('analysisContent');
-
-if (analysis) {
-
-  analysis.innerHTML =
-    generateFinancialAnalysis();
-}
 
 function renderTransactions() {
   updateDaySelect();
@@ -1177,11 +903,6 @@ function renderTransactions() {
   let txs = getMonthData(getKey());
   if (activeFilter !== 'all') txs = txs.filter(t=>t.type===activeFilter);
   if (activeDayFilter !== 'all') txs = txs.filter(t=>t.date===activeDayFilter);
-if (activeCatFilter)
-txs = txs.filter(
-t =>
-(t.category || 'Sin categoría') === activeCatFilter
-);
   if (search) txs = txs.filter(t=>t.desc.toLowerCase().includes(search)||(t.category||'').toLowerCase().includes(search));
 
   const grouped = {};
@@ -1191,13 +912,7 @@ t =>
   if (!list) return;
 
   if (sortedDates.length===0) {
-    list.innerHTML = `<div class="empty-state"><div class="empty-icon">📭</div <p>
-  ${
-    activeCatFilter
-      ? `Sin movimientos en "${activeCatFilter}"`
-      : 'No hay registros para este período'
-  }
-</p></div>`;
+    list.innerHTML = `<div class="empty-state"><div class="empty-icon">📭</div><p>No hay registros para este período</p></div>`;
     return;
   }
 
@@ -1276,14 +991,7 @@ function renderCharts() {
   if (grid) grid.innerHTML = sorted.map(([cat,{total:val,type}])=>{
     const pct = Math.round(val/total*100);
     const color = catColors[type]||'#7a8baa';
-    return ` <div class="
-cat-card
-type-${item.type}
-${activeCatFilter===item.category?'active-filter':''}
-"
-onclick="filterByCategory('${esc(item.category)}')"
-style="cursor:pointer">
-
+    return `<div class="cat-card type-${type}">
       <div class="cat-name" title="${esc(cat)}">${esc(cat)}</div>
       <div class="cat-amount">${fmt(val)}</div>
       <div class="cat-pct-bar"><div class="cat-pct-fill" style="width:${pct}%;background:${color}"></div></div>
@@ -1423,82 +1131,20 @@ function renderAcumulado() {
 }
 
 async function traspasarSaldoMesAnterior() {
-
-const prevDate = new Date(currentYear, currentMonth - 1, 1);
-
-const prevKey =
-prevDate.getFullYear() +
-'-' +
-String(prevDate.getMonth() + 1).padStart(2,'0');
-
-const currentKey = getKey();
-
-const currentTxs = window.data[currentKey] || [];
-
-const yaExiste = currentTxs.some(
-t =>
-t.desc &&
-t.desc.includes('Traspaso saldo')
-);
-
-if (yaExiste) {
-
-showToast('⚠️ El saldo ya fue traspasado');
-
-return;
-}
-
-const prevTxs = (window.data[prevKey] || [])
-.filter(t =>
-!(t.desc && t.desc.includes('Traspaso saldo'))
-);
-
-const { balance } = calcSummary(prevTxs);
-
-if (balance <= 0) {
-
-showToast('⚠️ No hay saldo positivo para traspasar');
-
-return;
-}
-
-const tx = {
-
-id:
-Date.now().toString(36) +
-Math.random().toString(36).slice(2),
-
-type: 'ingreso',
-
-desc: `Traspaso saldo ${prevKey}`,
-
-amount: balance,
-
-date:
-`${currentYear}-${String(currentMonth+1).padStart(2,'0')}-01`,
-
-category: 'Traspaso',
-
-note:
-'Saldo restante del mes anterior',
-
-monthKey: currentKey
-};
-
-try {
-
-await window._saveToFirestore(tx);
-
-showToast(
-`✅ Traspaso realizado: ${fmt(balance)}`
-);
-
-} catch(e) {
-
-console.error(e);
-
-showToast('❌ Error al traspasar');
-}
+  const prevDate = new Date(currentYear, currentMonth - 1, 1);
+  const prevKey = prevDate.getFullYear() + '-' + String(prevDate.getMonth()+1).padStart(2,'0');
+  const prevBalance = window.data[prevKey] ? calcSummary(window.data[prevKey]).balance : 0;
+  if (prevBalance === 0) { showToast('El mes anterior tiene saldo S/ 0'); return; }
+  const currentKey = currentYear + '-' + String(currentMonth+1).padStart(2,'0');
+  const prevLabel = MONTHS[prevDate.getMonth()] + ' ' + prevDate.getFullYear();
+  const existing = (window.data[currentKey] || []).find(t => t.desc && t.desc.includes('Traspaso saldo'));
+  if (existing) { showToast('Ya existe un traspaso este mes'); return; }
+  const type = prevBalance > 0 ? 'ingreso' : 'gasto-variable';
+  const id = Date.now().toString(36) + Math.random().toString(36).slice(2);
+  const today = new Date().toISOString().split('T')[0];
+  const tx = { id, type, desc: 'Traspaso saldo ' + prevLabel, amount: Math.abs(prevBalance), date: today, category: 'Traspaso', note: 'Saldo acumulado de ' + prevLabel, monthKey: currentKey };
+  await window._saveToFirestore(tx);
+  showToast('Traspasado ' + fmt(Math.abs(prevBalance)) + ' de ' + prevLabel);
 }
 
 // Expose needed functions
@@ -1529,4 +1175,3 @@ if ('serviceWorker' in navigator) {
 </script>
 </body>
 </html>
-
