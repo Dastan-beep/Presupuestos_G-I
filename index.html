@@ -1486,11 +1486,10 @@ function renderAcumulado() {
     if (balance >= 0) mesesPos++; else mesesNeg++;
   });
 
-  // Saldo del mes ANTERIOR: excluimos el traspaso que ÉL recibió del mes anterior
-  // para que solo se cuenten sus ingresos/gastos reales propios
+  // Saldo del mes ANTERIOR completo (con todo incluido = lo que realmente quedó disponible)
   const prevDate = new Date(currentYear, currentMonth - 1, 1);
   const prevKey = prevDate.getFullYear() + '-' + String(prevDate.getMonth()+1).padStart(2,'0');
-  const prevBalance = calcSummary(sinTraspasos(window.data[prevKey] || [])).balance;
+  const prevBalance = calcSummary(window.data[prevKey] || []).balance;
   const yaTraspasado = currentTxs.some(t => t.desc && t.desc.includes('Traspaso saldo'));
 
   // Porcentajes sobre ingresos
@@ -1533,8 +1532,7 @@ function renderAcumulado() {
 async function traspasarSaldoMesAnterior() {
   const prevDate = new Date(currentYear, currentMonth - 1, 1);
   const prevKey = prevDate.getFullYear() + '-' + String(prevDate.getMonth()+1).padStart(2,'0');
-  // Solo los ingresos/gastos reales del mes anterior (sin el traspaso que él recibió)
-  const prevBalance = calcSummary(sinTraspasos(window.data[prevKey] || [])).balance;
+  const prevBalance = calcSummary(window.data[prevKey] || []).balance;
   if (prevBalance === 0) { showToast('El mes anterior tiene saldo S/ 0'); return; }
   const currentKey = currentYear + '-' + String(currentMonth+1).padStart(2,'0');
   const prevLabel = MONTHS[prevDate.getMonth()] + ' ' + prevDate.getFullYear();
