@@ -286,6 +286,23 @@ svg.donut{transform:rotate(-90deg);flex-shrink:0;}
 .acc-type-btn span{font-size:1.4rem;}
 .acc-type-btn.active{border-color:var(--navy);background:#edf0f7;color:var(--navy);}
 
+/* BUDGET MODAL */
+.budget-list{max-height:360px;overflow-y:auto;margin-bottom:16px;}
+.budget-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--cream-dark);}
+.budget-row:last-child{border-bottom:none;}
+.budget-row-info{flex:1;min-width:0;}
+.budget-row-name{font-size:0.8rem;font-weight:600;color:var(--text-dark);}
+.budget-row-spent{font-size:0.68rem;color:var(--text-light);margin-top:2px;}
+.budget-row input{width:90px;padding:6px 8px;font-size:0.78rem;}
+.budget-row-periods{display:flex;flex-direction:column;gap:6px;}
+.budget-period-line{display:flex;align-items:center;gap:6px;}
+.budget-period-line label{font-size:0.62rem;color:var(--text-light);width:52px;text-transform:none;margin:0;font-weight:500;}
+.cat-budget-text{font-size:0.65rem;font-weight:700;margin-top:2px;}
+.cat-budget-text.ok{color:var(--green);}
+.cat-budget-text.near{color:var(--gold);}
+.cat-budget-text.over{color:var(--red);}
+.cat-budget-period-tag{font-size:0.58rem;font-weight:700;text-transform:uppercase;opacity:0.7;}
+
 /* TOAST */
 .toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--navy);color:var(--white);padding:10px 20px;border-radius:50px;font-size:0.8rem;font-weight:600;box-shadow:var(--shadow-lg);transition:transform 0.3s ease;z-index:2000;white-space:nowrap;}
 .toast.show{transform:translateX(-50%) translateY(0);}
@@ -496,7 +513,10 @@ svg.donut{transform:rotate(-90deg);flex-shrink:0;}
         <div class="cat-breakdown" id="catBreakdown">
           <div class="cat-breakdown-header">
             <h3>📊 Desglose por Categoría <span style="font-size:0.72rem;font-weight:400;color:var(--text-light)">(clic para filtrar)</span></h3>
-            <div id="activeCatFilterLabel"></div>
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+              <div id="activeCatFilterLabel"></div>
+              <button class="btn-transfer" style="padding:5px 14px;font-size:0.72rem" onclick="openBudgetModal()">🎯 Presupuestos</button>
+            </div>
           </div>
           <div class="cat-grid" id="catGrid"></div>
         </div>
@@ -618,6 +638,19 @@ svg.donut{transform:rotate(-90deg);flex-shrink:0;}
   </div>
 </div>
 
+<!-- MODAL PRESUPUESTOS -->
+<div class="modal-overlay" id="budgetModal">
+  <div class="modal" style="max-width:460px">
+    <h3>🎯 Presupuesto por Categoría</h3>
+    <p>Define cuánto quieres gastar como máximo por semana y/o por mes en cada categoría. La semana va de lunes a domingo. Te avisaremos cuando te acerques al límite.</p>
+    <div class="budget-list" id="budgetList"></div>
+    <div class="modal-actions">
+      <button class="btn-modal" onclick="closeModal('budgetModal')">Cerrar</button>
+      <button class="btn-modal" style="background:var(--navy);color:var(--white);border-color:var(--navy)" onclick="saveAllBudgets()">Guardar Presupuestos</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 <input type="file" id="importInput" accept=".csv" style="position:fixed;top:-999px;left:-999px;opacity:0;" onchange="importCSV(event)">
 
@@ -643,7 +676,7 @@ const db = getFirestore(app);
 const provider = new GoogleAuthProvider();
 provider.setCustomParameters({ prompt: 'select_account' });
 
-let unsubTx = null, unsubAcc = null;
+let unsubTx = null, unsubAcc = null, unsubBudget = null;
 
 const EMAILS_PERMITIDOS = ['diana.huamali.asmat@gmail.com','fmftvanessa@gmail.com','bantonialcala@gmail.com'];
 
@@ -708,6 +741,15 @@ onAuthStateChanged(auth, (user) => {
       updateAccountSelects();
       renderAccounts();
     });
+
+    // Listen budgets
+    const budgetRef = collection(db, 'users', user.uid, 'budgets');
+    if (unsubBudget) unsubBudget();
+    unsubBudget = onSnapshot(budgetRef, (snap) => {
+      window.budgets = {};
+      snap.forEach(d => { window.budgets[d.id] = d.data(); });
+      if (window._appInited) { renderCatBreakdown(); renderAnalysis(); }
+    });
   } else {
     document.getElementById('loginScreen').style.display = 'flex';
     document.getElementById('appScreen').style.display = 'none';
@@ -730,6 +772,14 @@ window._deleteAccount = async (id) => {
   const ref = collection(db, 'users', window._currentUserId, 'accounts');
   await deleteDoc(doc(ref, id));
 };
+window._saveBudget = async (catId, budget) => {
+  const ref = collection(db, 'users', window._currentUserId, 'budgets');
+  await setDoc(doc(ref, catId), budget);
+};
+window._deleteBudget = async (catId) => {
+  const ref = collection(db, 'users', window._currentUserId, 'budgets');
+  await deleteDoc(doc(ref, catId));
+};
 
 function showLoading(show) {
   let o = document.getElementById('loadingOverlay');
@@ -749,6 +799,7 @@ function setSyncStatus(s) {
 <script>
 window.data = {};
 window.accounts = [];
+window.budgets = {};
 let currentYear, currentMonth;
 let activeFilter = 'all';
 let activeDayFilter = 'all';
@@ -945,6 +996,84 @@ function showAccTx(accId) {
     }).join('');
 }
 
+// ─── BUDGETS ──────────────────────────────────────────────
+function catSlug(cat) { return String(cat).replace(/[\/\s]+/g,'_').replace(/[^\w-]/g,''); }
+
+function getWeekRange(d) {
+  const date = new Date(d);
+  const day = date.getDay(); // 0=Dom,1=Lun,...
+  const diffToMonday = day===0 ? -6 : 1-day;
+  const monday = new Date(date);
+  monday.setDate(date.getDate()+diffToMonday);
+  monday.setHours(0,0,0,0);
+  const sunday = new Date(monday);
+  sunday.setDate(monday.getDate()+6);
+  return { start: monday.toISOString().split('T')[0], end: sunday.toISOString().split('T')[0] };
+}
+
+function getCategorySpent(cat, period) {
+  let txs;
+  if (period==='semanal') {
+    const {start,end} = getWeekRange(new Date());
+    txs = Object.values(window.data).flat().filter(t=>(t.type==='gasto-variable'||t.type==='gasto-fijo')&&t.date>=start&&t.date<=end);
+  } else {
+    txs = getMonthData(getKey()).filter(t=>t.type==='gasto-variable'||t.type==='gasto-fijo');
+  }
+  return txs.filter(t=>(t.category||'Sin categoría')===cat).reduce((s,t)=>s+t.amount,0);
+}
+
+function openBudgetModal() {
+  const txs = getMonthData(getKey());
+  const catMap = {};
+  txs.filter(t=>t.type==='gasto-variable'||t.type==='gasto-fijo').forEach(t=>{
+    const cat = t.category||'Sin categoría';
+    catMap[cat] = (catMap[cat]||0) + t.amount;
+  });
+  const allCats = [...new Set([...CATEGORIES['gasto-variable'], ...CATEGORIES['gasto-fijo'], ...Object.keys(catMap)])];
+  const list = document.getElementById('budgetList');
+  list.innerHTML = allCats.map(cat=>{
+    const slug = catSlug(cat);
+    const weekSpent = getCategorySpent(cat,'semanal');
+    const monthSpent = catMap[cat]||0;
+    const wBudget = window.budgets[slug+'_w'];
+    const mBudget = window.budgets[slug+'_m'];
+    return `<div class="budget-row">
+      <div class="budget-row-info">
+        <div class="budget-row-name">${esc(cat)}</div>
+        <div class="budget-row-spent">Esta semana: ${fmt(weekSpent)} · Este mes: ${fmt(monthSpent)}</div>
+      </div>
+      <div class="budget-row-periods">
+        <div class="budget-period-line">
+          <label>Semanal</label>
+          <input type="number" min="0" step="0.01" placeholder="Sin límite" value="${wBudget?wBudget.limit:''}" data-cat="${esc(cat)}" data-period="semanal" id="budgetInput_w_${slug}">
+        </div>
+        <div class="budget-period-line">
+          <label>Mensual</label>
+          <input type="number" min="0" step="0.01" placeholder="Sin límite" value="${mBudget?mBudget.limit:''}" data-cat="${esc(cat)}" data-period="mensual" id="budgetInput_m_${slug}">
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+  document.getElementById('budgetModal').classList.add('open');
+}
+
+async function saveAllBudgets() {
+  const inputs = document.querySelectorAll('#budgetList input');
+  for (const inp of inputs) {
+    const cat = inp.dataset.cat;
+    const period = inp.dataset.period;
+    const slug = catSlug(cat)+(period==='semanal'?'_w':'_m');
+    const val = parseFloat(inp.value);
+    if (!isNaN(val) && val > 0) {
+      await window._saveBudget(slug, { category: cat, limit: val, period });
+    } else if (window.budgets[slug]) {
+      await window._deleteBudget(slug);
+    }
+  }
+  closeModal('budgetModal');
+  showToast('🎯 Presupuestos guardados');
+}
+
 let selectedAccTypeModal = 'efectivo';
 function openAccountModal(id) {
   selectedAccTypeModal = 'efectivo';
@@ -1059,6 +1188,7 @@ async function confirmDelete() {
 function closeModal(id) { document.getElementById(id).classList.remove('open'); }
 document.getElementById('deleteModal').addEventListener('click',function(e){if(e.target===this)closeModal('deleteModal');});
 document.getElementById('accountModal').addEventListener('click',function(e){if(e.target===this)closeModal('accountModal');});
+document.getElementById('budgetModal').addEventListener('click',function(e){if(e.target===this)closeModal('budgetModal');});
 
 // ─── RENDER ───────────────────────────────────────────────
 function render() {
@@ -1225,11 +1355,29 @@ function renderCatBreakdown() {
     const pct=Math.round(total/totalGasto*100);
     const color=catColors[type]||'#7a8baa';
     const isActive=activeCatFilter===cat;
+    const isGasto=(type==='gasto-variable'||type==='gasto-fijo');
+    const slug=catSlug(cat);
+    const wBudget=isGasto?window.budgets[slug+'_w']:null;
+    const mBudget=isGasto?window.budgets[slug+'_m']:null;
+    let barSection='';
+    function budgetBar(spent,limit,label){
+      const bpct=Math.round(spent/limit*100);
+      const barColor=bpct>=100?'#e74c3c':bpct>=80?'#c8933f':'#2d7d5b';
+      const textClass=bpct>=100?'over':bpct>=80?'near':'ok';
+      const flag=bpct>=100?' 🚨':bpct>=80?' ⚠️':'';
+      return `<div class="cat-pct-bar"><div class="cat-pct-fill" style="width:${Math.min(bpct,100)}%;background:${barColor}"></div></div>
+      <div class="cat-budget-text ${textClass}"><span class="cat-budget-period-tag">${label}</span> ${fmt(spent)} / ${fmt(limit)} · ${bpct}%${flag}</div>`;
+    }
+    if(wBudget&&wBudget.limit>0) barSection+=budgetBar(getCategorySpent(cat,'semanal'),wBudget.limit,'Semana');
+    if(mBudget&&mBudget.limit>0) barSection+=budgetBar(total,mBudget.limit,'Mes');
+    if(!barSection){
+      barSection=`<div class="cat-pct-bar"><div class="cat-pct-fill" style="width:${Math.min(pct,100)}%;background:${color}"></div></div>
+      <div class="cat-pct-text">${count} mov. · ${pct}%</div>`;
+    }
     return `<div class="cat-card type-${type}${isActive?' active-filter':''}" onclick="filterByCategory('${esc(cat)}')">
       <div class="cat-name" title="${esc(cat)}">${esc(cat)}</div>
       <div class="cat-amount">${fmt(total)}</div>
-      <div class="cat-pct-bar"><div class="cat-pct-fill" style="width:${Math.min(pct,100)}%;background:${color}"></div></div>
-      <div class="cat-pct-text">${count} mov. · ${pct}%</div>
+      ${barSection}
       <div class="cat-click-hint">${isActive?'✓ Filtrando':'👆 Clic para filtrar'}</div>
     </div>`;
   }).join('');
@@ -1260,6 +1408,29 @@ function renderAnalysis() {
     if(proyeccion>income) insights.push({type:'alert',icon:'📅',title:'Proyección: terminarás en negativo',desc:`A tu ritmo actual (<span class="insight-highlight">${fmt(gastosDia)}/día</span>), gastarás <span class="insight-highlight">${fmt(proyeccion)}</span> este mes. No gastes más de <span class="insight-highlight">${fmt(Math.max(0,balance/diasRestantes))}/día</span> los próximos ${diasRestantes} días.`});
     else if(balance>0) insights.push({type:'tip',icon:'📅',title:`${diasRestantes} días restantes · ${fmt(balance)} disponibles`,desc:`Puedes gastar hasta <span class="insight-highlight">${fmt(balance/diasRestantes)}/día</span> sin quedarte en negativo.`});
   }
+  // Presupuestos por categoría (mensual + semanal)
+  const gastoCatMap={};
+  txs.filter(t=>t.type==='gasto-variable'||t.type==='gasto-fijo').forEach(t=>{const cat=t.category||'Sin categoría';gastoCatMap[cat]=(gastoCatMap[cat]||0)+t.amount;});
+  const budgetAlerts=[];
+  const allBudgetCats=[...new Set([...Object.keys(gastoCatMap),...Object.values(window.budgets).map(b=>b.category)])];
+  allBudgetCats.forEach(cat=>{
+    const slug=catSlug(cat);
+    const mBudget=window.budgets[slug+'_m'];
+    const wBudget=window.budgets[slug+'_w'];
+    if(mBudget&&mBudget.limit){
+      const spent=gastoCatMap[cat]||0;
+      const bpct=Math.round(spent/mBudget.limit*100);
+      if(bpct>=100) budgetAlerts.push({type:'alert',icon:'🚨',title:`Presupuesto mensual excedido: ${cat}`,desc:`Gastaste <span class="insight-highlight">${fmt(spent)}</span> de un límite mensual de <span class="insight-highlight">${fmt(mBudget.limit)}</span> (${bpct}%).`,pct:bpct});
+      else if(bpct>=80) budgetAlerts.push({type:'warning',icon:'⚠️',title:`Cerca del límite mensual: ${cat}`,desc:`Llevas <span class="insight-highlight">${fmt(spent)}</span> de <span class="insight-highlight">${fmt(mBudget.limit)}</span> (${bpct}%) este mes. Te quedan <span class="insight-highlight">${fmt(mBudget.limit-spent)}</span>.`,pct:bpct});
+    }
+    if(wBudget&&wBudget.limit){
+      const spentW=getCategorySpent(cat,'semanal');
+      const bpctW=Math.round(spentW/wBudget.limit*100);
+      if(bpctW>=100) budgetAlerts.push({type:'alert',icon:'🚨',title:`Presupuesto semanal excedido: ${cat}`,desc:`Llevas <span class="insight-highlight">${fmt(spentW)}</span> de un límite semanal de <span class="insight-highlight">${fmt(wBudget.limit)}</span> (${bpctW}%) esta semana.`,pct:bpctW});
+      else if(bpctW>=80) budgetAlerts.push({type:'warning',icon:'⚠️',title:`Cerca del límite semanal: ${cat}`,desc:`Llevas <span class="insight-highlight">${fmt(spentW)}</span> de <span class="insight-highlight">${fmt(wBudget.limit)}</span> (${bpctW}%) esta semana. Te quedan <span class="insight-highlight">${fmt(wBudget.limit-spentW)}</span>.`,pct:bpctW});
+    }
+  });
+  budgetAlerts.sort((a,b)=>b.pct-a.pct).forEach(a=>insights.push(a));
   // Cuentas sin movimientos
   if((window.accounts||[]).length===0) insights.push({type:'tip',icon:'🏦',title:'Agrega tus cuentas bancarias',desc:`Ve a la pestaña <strong>Cuentas</strong> para registrar tus cuentas (banco, efectivo, ahorro). Así el dinero se moverá de forma real cuando registres gastos o ahorros.`});
   document.getElementById('insightList').innerHTML=`<div class="insight-list">${insights.map(i=>`<div class="insight-item ${i.type}"><div class="insight-icon">${i.icon}</div><div><div class="insight-title">${i.title}</div><div class="insight-desc">${i.desc}</div></div></div>`).join('')||'<div class="no-analysis">✅ Todo en orden</div>'}</div>`;
@@ -1332,12 +1503,11 @@ window.closeModal=closeModal;window.downloadData=downloadData;window.goToMonth=g
 window.traspasarSaldoMesAnterior=traspasarSaldoMesAnterior;window.setDayFilter=setDayFilter;
 window.filterByCategory=filterByCategory;window.openAccountModal=openAccountModal;
 window.selectAccType=selectAccType;window.saveAccount=saveAccount;window.showAccTx=showAccTx;
+window.openBudgetModal=openBudgetModal;window.saveAllBudgets=saveAllBudgets;
 window.render=render;
 </script>
 <script>
 if('serviceWorker' in navigator){window.addEventListener('load',()=>{navigator.serviceWorker.register('/Presupuestos_G-I/sw.js').catch(e=>console.log('SW:',e));});}
 </script>
-</body>
-</html>
 </body>
 </html>
