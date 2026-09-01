@@ -825,12 +825,13 @@ function selectType(btn) {
 function updateFormForType() {
   const isTransfer = selectedType === 'transferencia';
   const isAhorro = selectedType === 'ahorro';
-  document.getElementById('accountToGroup').style.display = isTransfer ? 'block' : 'none';
+  const needsTwoAccounts = isTransfer || isAhorro;
+  document.getElementById('accountToGroup').style.display = needsTwoAccounts ? 'block' : 'none';
   document.getElementById('categoryGroup').style.display = isTransfer ? 'none' : 'block';
-  document.getElementById('accountHint').classList.toggle('visible', isTransfer || isAhorro);
-  document.getElementById('accountFromLabel').textContent = isTransfer ? 'Cuenta origen' : 'Cuenta';
+  document.getElementById('accountHint').classList.toggle('visible', needsTwoAccounts);
+  document.getElementById('accountFromLabel').textContent = needsTwoAccounts ? 'Cuenta origen' : 'Cuenta';
   if (isAhorro) {
-    document.getElementById('accountHint').textContent = '💡 Al registrar un ahorro, el monto sale de tu cuenta disponible y va a tu cuenta de ahorro.';
+    document.getElementById('accountHint').textContent = '💡 Al registrar un ahorro, el monto sale de tu cuenta origen y entra a tu cuenta de ahorro destino.';
   } else if (isTransfer) {
     document.getElementById('accountHint').textContent = '🔄 El dinero se mueve de una cuenta a otra. No afecta tu balance total, solo redistribuye.';
   }
@@ -866,18 +867,17 @@ function calcAccountBalance(accId) {
   let bal = acc.initialBalance || 0;
   Object.values(window.data).forEach(txs => {
     txs.forEach(t => {
-      if (t.accountFrom === accId) {
-        // Money goes OUT of this account
-        bal -= t.amount;
-      }
-      if (t.accountTo === accId) {
-        // Money comes IN to this account
-        bal += t.amount;
-      }
-      // For regular ingresos with no accountTo set but matches this account
-      if (!t.accountFrom && !t.accountTo && t.accountId === accId) {
-        if (t.type === 'ingreso') bal += t.amount;
-        else if (t.type === 'gasto-variable' || t.type === 'gasto-fijo') bal -= t.amount;
+      const acct = t.accountFrom || t.accountId;
+      if (t.type === 'ingreso') {
+        // El ingreso entra a la cuenta seleccionada
+        if (acct === accId) bal += t.amount;
+      } else if (t.type === 'gasto-variable' || t.type === 'gasto-fijo') {
+        // El gasto sale de la cuenta seleccionada
+        if (acct === accId) bal -= t.amount;
+      } else if (t.type === 'ahorro' || t.type === 'transferencia') {
+        // Ahorro y transferencia mueven dinero entre cuenta origen y destino
+        if (t.accountFrom === accId) bal -= t.amount;
+        if (t.accountTo === accId) bal += t.amount;
       }
     });
   });
@@ -928,7 +928,10 @@ function showAccTx(accId) {
   }
   container.innerHTML = `<p style="font-size:0.8rem;color:var(--text-mid);margin-bottom:12px">Últimos movimientos de <strong>${esc(acc.name)}</strong></p>` +
     allTxs.map(t=>{
-      const isOut = t.accountFrom===accId;
+      let isOut;
+      if (t.type==='ingreso') isOut=false;
+      else if (t.type==='gasto-variable'||t.type==='gasto-fijo') isOut=true;
+      else isOut = t.accountFrom===accId;
       const sign = isOut ? '-' : '+';
       const color = isOut ? 'var(--red)' : 'var(--green)';
       return `<div class="trans-item">
@@ -992,8 +995,8 @@ async function saveTransaction() {
   if (!desc) { showToast('⚠️ Escribe una descripción'); return; }
   if (!amount||amount<=0) { showToast('⚠️ Ingresa un monto válido'); return; }
   if (!date) { showToast('⚠️ Selecciona una fecha'); return; }
-  if (selectedType==='transferencia' && (!accountFrom||!accountTo)) { showToast('⚠️ Selecciona cuenta origen y destino'); return; }
-  if (selectedType==='transferencia' && accountFrom===accountTo) { showToast('⚠️ Las cuentas deben ser diferentes'); return; }
+  if ((selectedType==='transferencia'||selectedType==='ahorro') && (!accountFrom||!accountTo)) { showToast('⚠️ Selecciona cuenta origen y destino'); return; }
+  if ((selectedType==='transferencia'||selectedType==='ahorro') && accountFrom===accountTo) { showToast('⚠️ Las cuentas deben ser diferentes'); return; }
 
   const d = new Date(date+'T00:00:00');
   const monthKey = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
