@@ -480,8 +480,6 @@ svg.donut{transform:rotate(-90deg);flex-shrink:0;}
                 </select>
               </div>
               <div class="form-group" id="categoryGroup">
-                <label id="fGroupLabel" style="display:none">Grupo</label>
-                <select id="fGroupSelect" style="display:none;margin-bottom:8px" onchange="updateSubCategorySelect()"></select>
                 <label>Categoría</label>
                 <select id="fCategory"></select>
               </div>
@@ -525,13 +523,14 @@ svg.donut{transform:rotate(-90deg);flex-shrink:0;}
 
         <div class="charts-row">
           <div class="chart-card">
-            <h3>Distribución del Presupuesto</h3>
+            <h3>Distribución por Grupos</h3>
             <div class="donut-wrap">
               <svg class="donut" width="110" height="110" viewBox="0 0 120 120">
                 <circle cx="60" cy="60" r="50" fill="none" stroke="#ede6d6" stroke-width="20"/>
-                <circle id="donutExpense" cx="60" cy="60" r="50" fill="none" stroke="#e74c3c" stroke-width="20" stroke-dasharray="0 314" stroke-linecap="round"/>
-                <circle id="donutSavings" cx="60" cy="60" r="50" fill="none" stroke="#c8933f" stroke-width="20" stroke-dasharray="0 314" stroke-linecap="round"/>
-                <circle id="donutBalance" cx="60" cy="60" r="50" fill="none" stroke="#2d7d5b" stroke-width="20" stroke-dasharray="0 314" stroke-linecap="round"/>
+                <circle id="donutIngreso" cx="60" cy="60" r="50" fill="none" stroke="#2d7d5b" stroke-width="20" stroke-dasharray="0 314" stroke-linecap="round"/>
+                <circle id="donutVariable" cx="60" cy="60" r="50" fill="none" stroke="#e74c3c" stroke-width="20" stroke-dasharray="0 314" stroke-linecap="round"/>
+                <circle id="donutFijo" cx="60" cy="60" r="50" fill="none" stroke="#c0392b" stroke-width="20" stroke-dasharray="0 314" stroke-linecap="round"/>
+                <circle id="donutAhorro" cx="60" cy="60" r="50" fill="none" stroke="#c8933f" stroke-width="20" stroke-dasharray="0 314" stroke-linecap="round"/>
               </svg>
               <div class="donut-legend" id="donutLegend"></div>
             </div>
@@ -806,53 +805,16 @@ let currentYear, currentMonth;
 let activeFilter = 'all';
 let activeDayFilter = 'all';
 let activeCatFilter = null;
-let activeCatFilterLabel = null;
 let deletingId = null;
 let selectedType = 'ingreso';
 let selectedAccType = 'efectivo';
 let currentMainTab = 'movimientos';
 
 const MONTHS = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
-
-// ─── GRUPOS DE CATEGORÍAS (con subcategorías) — solo para gastos ──
-const CATEGORY_GROUPS = {
-  'gasto-variable': [
-    {group:'Alimentación', icon:'🍽️', subs:['Supermercado','Restaurantes','Comida rápida','Cafetería','Delivery']},
-    {group:'Transporte', icon:'🚌', subs:['Transporte','Taxi/Uber']},
-    {group:'Ocio y Entretenimiento', icon:'🎉', subs:['Cine','Entretenimiento','Streaming','Salidas/Bares','Videojuegos']},
-    {group:'Ropa y Belleza', icon:'👗', subs:['Ropa','Calzado','Belleza/Cuidado personal']},
-    {group:'Salud', icon:'💊', subs:['Salud','Farmacia']},
-    {group:'Tecnología', icon:'💻', subs:['Tecnología']},
-    {group:'Deporte', icon:'🏋️', subs:['Deporte/Gimnasio']},
-    {group:'Mascotas', icon:'🐾', subs:['Mascotas']},
-    {group:'Viajes', icon:'✈️', subs:['Viajes']},
-    {group:'Regalos', icon:'🎁', subs:['Regalos']},
-    {group:'Otros', icon:'📦', subs:['Libros','Otros variables']}
-  ],
-  'gasto-fijo': [
-    {group:'Vivienda', icon:'🏠', subs:['Alquiler/Hipoteca','Servicios (luz/agua/gas)','Internet/Teléfono']},
-    {group:'Seguros y Pensión', icon:'🛡️', subs:['Seguros','AFP/Pensión']},
-    {group:'Suscripciones', icon:'📺', subs:['Suscripciones']},
-    {group:'Educación', icon:'🎓', subs:['Educación']},
-    {group:'Créditos', icon:'💳', subs:['Cuotas/Créditos']},
-    {group:'Otros', icon:'📦', subs:['Otros fijos']}
-  ]
-};
-// Mapa rápido subcategoría → grupo, y grupo → ícono, por tipo
-const CAT_TO_GROUP = {}, GROUP_ICON = {};
-Object.keys(CATEGORY_GROUPS).forEach(type=>{
-  CAT_TO_GROUP[type]={}; GROUP_ICON[type]={};
-  CATEGORY_GROUPS[type].forEach(g=>{
-    GROUP_ICON[type][g.group]=g.icon;
-    g.subs.forEach(s=>{ CAT_TO_GROUP[type][s]=g.group; });
-  });
-});
-function groupOf(type,cat){ return (CAT_TO_GROUP[type]&&CAT_TO_GROUP[type][cat]) || 'Otros'; }
-
 const CATEGORIES = {
   ingreso: ['Salario','Freelance','Negocio','Inversiones','Alquiler','Bonificación','Premio/Bono','Reembolso','Otros ingresos'],
-  'gasto-variable': CATEGORY_GROUPS['gasto-variable'].flatMap(g=>g.subs),
-  'gasto-fijo': CATEGORY_GROUPS['gasto-fijo'].flatMap(g=>g.subs),
+  'gasto-variable': ['Supermercado','Restaurantes','Comida rápida','Cafetería','Delivery','Cine','Entretenimiento','Streaming','Salidas/Bares','Transporte','Taxi/Uber','Ropa','Calzado','Salud','Farmacia','Tecnología','Videojuegos','Libros','Mascotas','Belleza/Cuidado personal','Deporte/Gimnasio','Viajes','Regalos','Otros variables'],
+  'gasto-fijo': ['Alquiler/Hipoteca','Servicios (luz/agua/gas)','Internet/Teléfono','Seguros','Suscripciones','Educación','AFP/Pensión','Cuotas/Créditos','Otros fijos'],
   ahorro: ['Fondo de emergencia','Jubilación','Vacaciones','Inversión','Meta específica','Bachiller/Estudios','Tecnología','Viaje soñado','Otros ahorros'],
   transferencia: ['Transferencia interna']
 };
@@ -891,7 +853,7 @@ function changeMonth(dir) {
   currentMonth += dir;
   if (currentMonth<0) { currentMonth=11; currentYear--; }
   if (currentMonth>11) { currentMonth=0; currentYear++; }
-  activeCatFilter = null; activeCatFilterLabel = null;
+  activeCatFilter = null;
   render();
 }
 
@@ -899,7 +861,7 @@ function setSubTab(el, filter) {
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
   el.classList.add('active');
   activeFilter = filter;
-  activeCatFilter = null; activeCatFilterLabel = null;
+  activeCatFilter = null;
   renderTransactions();
   renderCatBreakdown();
 }
@@ -928,30 +890,9 @@ function updateFormForType() {
 }
 
 function updateCategorySelect() {
-  const groupSel = document.getElementById('fGroupSelect');
-  const groupLabel = document.getElementById('fGroupLabel');
   const sel = document.getElementById('fCategory');
-  const groups = CATEGORY_GROUPS[selectedType];
-  if (groups) {
-    groupSel.style.display = 'block';
-    groupLabel.style.display = 'block';
-    groupSel.innerHTML = '<option value="">— Grupo —</option>' + groups.map(g=>`<option value="${esc(g.group)}">${g.icon} ${esc(g.group)}</option>`).join('');
-    groupSel.value = '';
-    sel.innerHTML = '<option value="">— Selecciona un grupo primero —</option>';
-  } else {
-    groupSel.style.display = 'none';
-    groupLabel.style.display = 'none';
-    sel.innerHTML = '<option value="">— Categoría —</option>';
-    (CATEGORIES[selectedType]||[]).forEach(c=>sel.innerHTML+=`<option value="${esc(c)}">${esc(c)}</option>`);
-  }
-}
-
-function updateSubCategorySelect() {
-  const groupSel = document.getElementById('fGroupSelect');
-  const sel = document.getElementById('fCategory');
-  const groups = CATEGORY_GROUPS[selectedType];
-  const g = groups && groups.find(x=>x.group===groupSel.value);
-  sel.innerHTML = '<option value="">— Categoría —</option>' + (g ? g.subs.map(s=>`<option value="${esc(s)}">${esc(s)}</option>`).join('') : '');
+  sel.innerHTML = '<option value="">— Categoría —</option>';
+  (CATEGORIES[selectedType]||[]).forEach(c=>sel.innerHTML+=`<option value="${c}">${c}</option>`);
 }
 
 // ─── ACCOUNTS ─────────────────────────────────────────────
@@ -1071,47 +1012,45 @@ function getWeekRange(d) {
   return { start: monday.toISOString().split('T')[0], end: sunday.toISOString().split('T')[0] };
 }
 
-// Los presupuestos viven a nivel de GRUPO (no de subcategoría). budgetKey identifica type+grupo de forma única.
-function budgetKey(type, group) { return type+'__'+catSlug(group); }
-
-function getGroupSpent(type, group, period) {
+function getCategorySpent(cat, period) {
   let txs;
   if (period==='semanal') {
     const {start,end} = getWeekRange(new Date());
-    txs = Object.values(window.data).flat().filter(t=>t.type===type&&t.date>=start&&t.date<=end);
+    txs = Object.values(window.data).flat().filter(t=>(t.type==='gasto-variable'||t.type==='gasto-fijo')&&t.date>=start&&t.date<=end);
   } else {
-    txs = getMonthData(getKey()).filter(t=>t.type===type);
+    txs = getMonthData(getKey()).filter(t=>t.type==='gasto-variable'||t.type==='gasto-fijo');
   }
-  return txs.filter(t=>groupOf(t.type,t.category)===group).reduce((s,t)=>s+t.amount,0);
+  return txs.filter(t=>(t.category||'Sin categoría')===cat).reduce((s,t)=>s+t.amount,0);
 }
 
 function openBudgetModal() {
-  const rows=[];
-  ['gasto-variable','gasto-fijo'].forEach(type=>{
-    CATEGORY_GROUPS[type].forEach(g=>{
-      rows.push({type, group:g.group, icon:g.icon});
-    });
+  const txs = getMonthData(getKey());
+  const catMap = {};
+  txs.filter(t=>t.type==='gasto-variable'||t.type==='gasto-fijo').forEach(t=>{
+    const cat = t.category||'Sin categoría';
+    catMap[cat] = (catMap[cat]||0) + t.amount;
   });
+  const allCats = [...new Set([...CATEGORIES['gasto-variable'], ...CATEGORIES['gasto-fijo'], ...Object.keys(catMap)])];
   const list = document.getElementById('budgetList');
-  list.innerHTML = rows.map(({type,group,icon})=>{
-    const key = budgetKey(type,group);
-    const weekSpent = getGroupSpent(type,group,'semanal');
-    const monthSpent = getGroupSpent(type,group,'mensual');
-    const wBudget = window.budgets[key+'_w'];
-    const mBudget = window.budgets[key+'_m'];
+  list.innerHTML = allCats.map(cat=>{
+    const slug = catSlug(cat);
+    const weekSpent = getCategorySpent(cat,'semanal');
+    const monthSpent = catMap[cat]||0;
+    const wBudget = window.budgets[slug+'_w'];
+    const mBudget = window.budgets[slug+'_m'];
     return `<div class="budget-row">
       <div class="budget-row-info">
-        <div class="budget-row-name">${icon} ${esc(group)} <span style="font-size:0.62rem;color:var(--text-light);text-transform:uppercase">${TYPE_LABELS[type]}</span></div>
+        <div class="budget-row-name">${esc(cat)}</div>
         <div class="budget-row-spent">Esta semana: ${fmt(weekSpent)} · Este mes: ${fmt(monthSpent)}</div>
       </div>
       <div class="budget-row-periods">
         <div class="budget-period-line">
           <label>Semanal</label>
-          <input type="number" min="0" step="0.01" placeholder="Sin límite" value="${wBudget?wBudget.limit:''}" data-type="${type}" data-group="${esc(group)}" data-period="semanal" id="budgetInput_w_${key}">
+          <input type="number" min="0" step="0.01" placeholder="Sin límite" value="${wBudget?wBudget.limit:''}" data-cat="${esc(cat)}" data-period="semanal" id="budgetInput_w_${slug}">
         </div>
         <div class="budget-period-line">
           <label>Mensual</label>
-          <input type="number" min="0" step="0.01" placeholder="Sin límite" value="${mBudget?mBudget.limit:''}" data-type="${type}" data-group="${esc(group)}" data-period="mensual" id="budgetInput_m_${key}">
+          <input type="number" min="0" step="0.01" placeholder="Sin límite" value="${mBudget?mBudget.limit:''}" data-cat="${esc(cat)}" data-period="mensual" id="budgetInput_m_${slug}">
         </div>
       </div>
     </div>`;
@@ -1122,15 +1061,14 @@ function openBudgetModal() {
 async function saveAllBudgets() {
   const inputs = document.querySelectorAll('#budgetList input');
   for (const inp of inputs) {
-    const type = inp.dataset.type;
-    const group = inp.dataset.group;
+    const cat = inp.dataset.cat;
     const period = inp.dataset.period;
-    const key = budgetKey(type,group)+(period==='semanal'?'_w':'_m');
+    const slug = catSlug(cat)+(period==='semanal'?'_w':'_m');
     const val = parseFloat(inp.value);
     if (!isNaN(val) && val > 0) {
-      await window._saveBudget(key, { type, group, limit: val, period });
-    } else if (window.budgets[key]) {
-      await window._deleteBudget(key);
+      await window._saveBudget(slug, { category: cat, limit: val, period });
+    } else if (window.budgets[slug]) {
+      await window._deleteBudget(slug);
     }
   }
   closeModal('budgetModal');
@@ -1208,7 +1146,6 @@ async function saveTransaction() {
 function clearForm() {
   ['fDesc','fAmount','fNote'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('fCategory').value='';
-  document.getElementById('fGroupSelect').value='';
   document.getElementById('fAccountFrom').value='';
   document.getElementById('fAccountTo').value='';
   document.getElementById('editingId').value='';
@@ -1237,10 +1174,6 @@ function startEdit(id) {
   document.querySelectorAll('.type-btn').forEach(b=>{b.classList.remove('active'); if(b.dataset.type===tx.type) b.classList.add('active');});
   updateCategorySelect();
   updateFormForType();
-  if (CATEGORY_GROUPS[tx.type] && tx.category) {
-    document.getElementById('fGroupSelect').value = groupOf(tx.type, tx.category);
-    updateSubCategorySelect();
-  }
   document.getElementById('fCategory').value=tx.category||'';
   document.querySelector('.form-panel').scrollIntoView({behavior:'smooth'});
 }
@@ -1325,25 +1258,20 @@ function updateDaySelect() {
   if(!days.includes(cur)) activeDayFilter='all';
 }
 
-function txGroupKey(t) {
-  const label = (t.type==='gasto-variable'||t.type==='gasto-fijo') ? groupOf(t.type,t.category) : (t.category||'Sin categoría');
-  return t.type+'::'+label;
-}
-
 function renderTransactions() {
   updateDaySelect();
   const search=(document.getElementById('searchInput')?.value||'').toLowerCase();
   let txs=getMonthData(getKey());
   if(activeFilter!=='all') txs=txs.filter(t=>t.type===activeFilter);
   if(activeDayFilter!=='all') txs=txs.filter(t=>t.date===activeDayFilter);
-  if(activeCatFilter) txs=txs.filter(t=>txGroupKey(t)===activeCatFilter);
+  if(activeCatFilter) txs=txs.filter(t=>(t.category||'Sin categoría')===activeCatFilter);
   if(search) txs=txs.filter(t=>t.desc.toLowerCase().includes(search)||(t.category||'').toLowerCase().includes(search));
   const grouped={};
   txs.forEach(t=>{if(!grouped[t.date])grouped[t.date]=[];grouped[t.date].push(t);});
   const sortedDates=Object.keys(grouped).sort((a,b)=>b.localeCompare(a));
   const list=document.getElementById('transList'); if(!list) return;
   if(sortedDates.length===0){
-    list.innerHTML=`<div class="empty-state"><div class="empty-icon">📭</div><p>${activeCatFilter?`Sin movimientos en "${activeCatFilterLabel||''}"`:' No hay registros para este período'}</p></div>`;
+    list.innerHTML=`<div class="empty-state"><div class="empty-icon">📭</div><p>${activeCatFilter?`Sin movimientos en "${activeCatFilter}"`:' No hay registros para este período'}</p></div>`;
     return;
   }
   list.innerHTML=sortedDates.map(date=>{
@@ -1377,37 +1305,37 @@ function renderTransactions() {
 
 function esc(str){return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 
-function filterByCategory(key, label) {
-  if (activeCatFilter===key) { activeCatFilter=null; activeCatFilterLabel=null; }
-  else { activeCatFilter=key; activeCatFilterLabel=label; }
+function filterByCategory(cat) {
+  activeCatFilter = activeCatFilter===cat ? null : cat;
   if (activeCatFilter) document.querySelector('.transactions-panel').scrollIntoView({behavior:'smooth',block:'start'});
   renderTransactions(); renderCatBreakdown(); updateCatFilterChip();
 }
 
 function updateCatFilterChip() {
   const c=document.getElementById('catFilterChipContainer'); if(!c) return;
-  c.innerHTML=activeCatFilter?`<button class="cat-filter-chip" onclick="filterByCategory('${esc(activeCatFilter)}','${esc(activeCatFilterLabel)}')">${esc(activeCatFilterLabel)} ✕</button>`:'';
+  c.innerHTML=activeCatFilter?`<button class="cat-filter-chip" onclick="filterByCategory('${esc(activeCatFilter)}')">${esc(activeCatFilter)} ✕</button>`:'';
   const l=document.getElementById('activeCatFilterLabel'); if(!l) return;
-  l.innerHTML=activeCatFilter?`<div class="cat-active-filter">${esc(activeCatFilterLabel)}<button onclick="filterByCategory('${esc(activeCatFilter)}','${esc(activeCatFilterLabel)}')">✕</button></div>`:'';
+  l.innerHTML=activeCatFilter?`<div class="cat-active-filter">${esc(activeCatFilter)}<button onclick="filterByCategory('${esc(activeCatFilter)}')">✕</button></div>`:'';
 }
 
 function renderCharts() {
   const txs=getMonthData(getKey());
-  const {income,expense,savings,balance}=calcSummary(txs);
+  const {income,gv,gf,savings,expense,balance}=calcSummary(txs);
+  const total=income+gv+gf+savings;
   const circ=314; let offset=0;
-  [{id:'donutExpense',val:expense},{id:'donutSavings',val:savings},{id:'donutBalance',val:Math.max(0,balance)}].forEach(seg=>{
+  [{id:'donutIngreso',val:income},{id:'donutVariable',val:gv},{id:'donutFijo',val:gf},{id:'donutAhorro',val:savings}].forEach(seg=>{
     const el=document.getElementById(seg.id); if(!el) return;
-    const dash=income>0?Math.min((seg.val/income)*circ,circ):0;
+    const dash=total>0?Math.min((seg.val/total)*circ,circ):0;
     el.setAttribute('stroke-dasharray',`${dash} ${circ}`);
     el.setAttribute('stroke-dashoffset',`-${offset}`);
     offset+=dash;
   });
   const legend=document.getElementById('donutLegend');
   if(legend) legend.innerHTML=[
-    {label:'Ingresos',val:income,color:'#2d7d5b',pct:100},
-    {label:'Gastos',val:expense,color:'#e74c3c',pct:income>0?Math.round(expense/income*100):0},
-    {label:'Ahorros',val:savings,color:'#c8933f',pct:income>0?Math.round(savings/income*100):0},
-    {label:'Saldo',val:balance,color:'#1a2744',pct:income>0?Math.round(Math.max(0,balance)/income*100):0},
+    {label:'Ingreso',val:income,color:'#2d7d5b',pct:total>0?Math.round(income/total*100):0},
+    {label:'G. Variable',val:gv,color:'#e74c3c',pct:total>0?Math.round(gv/total*100):0},
+    {label:'G. Fijo',val:gf,color:'#c0392b',pct:total>0?Math.round(gf/total*100):0},
+    {label:'Ahorro',val:savings,color:'#c8933f',pct:total>0?Math.round(savings/total*100):0},
   ].map(l=>`<div class="legend-item"><div class="legend-dot" style="background:${l.color}"></div><div><div class="legend-name">${l.label} <span style="font-size:0.66rem;color:#7a8baa">${l.pct}%</span></div><div class="legend-val">${fmt(l.val)}</div></div></div>`).join('');
   const pb=document.getElementById('progressBars');
   if(pb) pb.innerHTML=[
@@ -1418,7 +1346,7 @@ function renderCharts() {
 }
 
 function renderCatBreakdown() {
-  const allTxs=getMonthData(getKey());
+  const allTxs=getMonthData(getKey()).filter(t=>activeFilter==='all'||t.type===activeFilter);
   const catMap={};
   allTxs.forEach(t=>{const cat=t.category||'Sin categoría';if(!catMap[cat])catMap[cat]={total:0,type:t.type,count:0};catMap[cat].total+=t.amount;catMap[cat].count++;});
   const totalGasto=allTxs.filter(t=>t.type==='gasto-variable'||t.type==='gasto-fijo').reduce((s,t)=>s+t.amount,0)||1;
@@ -1535,7 +1463,7 @@ function renderFlow() {
   }).join('');
 }
 
-function goToMonth(y,m){currentYear=y;currentMonth=m;activeCatFilter=null;activeCatFilterLabel=null;showMainTab('movimientos');render();}
+function goToMonth(y,m){currentYear=y;currentMonth=m;activeCatFilter=null;showMainTab('movimientos');render();}
 
 function downloadData() {
   let csv='Mes,Tipo,Descripción,Monto,Fecha,Categoría,Nota,Cuenta Origen,Cuenta Destino\n';
@@ -1585,3 +1513,4 @@ if('serviceWorker' in navigator){window.addEventListener('load',()=>{navigator.s
 </script>
 </body>
 </html>
+
