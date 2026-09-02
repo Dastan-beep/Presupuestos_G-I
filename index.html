@@ -231,6 +231,9 @@ svg.donut{transform:rotate(-90deg);flex-shrink:0;}
 .cat-pct-fill{height:100%;border-radius:2px;}
 .cat-pct-text{font-size:0.65rem;color:var(--text-light);margin-top:2px;}
 .cat-click-hint{font-size:0.6rem;color:var(--text-light);margin-top:3px;opacity:0.7;}
+.cat-subs{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px;padding-top:8px;border-top:1px dashed var(--cream-dark);}
+.cat-sub-chip{font-size:0.62rem;color:var(--text-mid);background:var(--cream);padding:2px 7px;border-radius:50px;}
+.cat-sub-chip strong{color:var(--text-dark);}
 
 /* ANALYSIS */
 .analysis-card{background:var(--white);border-radius:var(--radius);padding:22px;box-shadow:var(--shadow);margin-top:18px;border-top:4px solid var(--navy);}
@@ -480,6 +483,8 @@ svg.donut{transform:rotate(-90deg);flex-shrink:0;}
                 </select>
               </div>
               <div class="form-group" id="categoryGroup">
+                <label id="fGroupLabel" style="display:none">Grupo</label>
+                <select id="fGroupSelect" style="display:none;margin-bottom:8px" onchange="updateSubCategorySelect()"></select>
                 <label>Categoría</label>
                 <select id="fCategory"></select>
               </div>
@@ -523,14 +528,13 @@ svg.donut{transform:rotate(-90deg);flex-shrink:0;}
 
         <div class="charts-row">
           <div class="chart-card">
-            <h3>Distribución por Grupos</h3>
+            <h3>Distribución del Presupuesto</h3>
             <div class="donut-wrap">
               <svg class="donut" width="110" height="110" viewBox="0 0 120 120">
                 <circle cx="60" cy="60" r="50" fill="none" stroke="#ede6d6" stroke-width="20"/>
-                <circle id="donutIngreso" cx="60" cy="60" r="50" fill="none" stroke="#2d7d5b" stroke-width="20" stroke-dasharray="0 314" stroke-linecap="round"/>
-                <circle id="donutVariable" cx="60" cy="60" r="50" fill="none" stroke="#e74c3c" stroke-width="20" stroke-dasharray="0 314" stroke-linecap="round"/>
-                <circle id="donutFijo" cx="60" cy="60" r="50" fill="none" stroke="#c0392b" stroke-width="20" stroke-dasharray="0 314" stroke-linecap="round"/>
-                <circle id="donutAhorro" cx="60" cy="60" r="50" fill="none" stroke="#c8933f" stroke-width="20" stroke-dasharray="0 314" stroke-linecap="round"/>
+                <circle id="donutExpense" cx="60" cy="60" r="50" fill="none" stroke="#e74c3c" stroke-width="20" stroke-dasharray="0 314" stroke-linecap="round"/>
+                <circle id="donutSavings" cx="60" cy="60" r="50" fill="none" stroke="#c8933f" stroke-width="20" stroke-dasharray="0 314" stroke-linecap="round"/>
+                <circle id="donutBalance" cx="60" cy="60" r="50" fill="none" stroke="#2d7d5b" stroke-width="20" stroke-dasharray="0 314" stroke-linecap="round"/>
               </svg>
               <div class="donut-legend" id="donutLegend"></div>
             </div>
@@ -805,16 +809,74 @@ let currentYear, currentMonth;
 let activeFilter = 'all';
 let activeDayFilter = 'all';
 let activeCatFilter = null;
+let activeCatFilterLabel = null;
 let deletingId = null;
 let selectedType = 'ingreso';
 let selectedAccType = 'efectivo';
 let currentMainTab = 'movimientos';
 
 const MONTHS = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+
+// ─── GRUPOS DE CATEGORÍAS (con subcategorías) — solo para gastos ──
+const CATEGORY_GROUPS = {
+  'gasto-variable': [
+    {group:'Alimentación', icon:'🍽️', subs:['Supermercado','Restaurantes','Comida rápida','Cafetería','Delivery']},
+    {group:'Transporte', icon:'🚌', subs:['Transporte','Taxi/Uber']},
+    {group:'Ocio y Entretenimiento', icon:'🎉', subs:['Cine','Entretenimiento','Streaming','Salidas/Bares','Videojuegos']},
+    {group:'Ropa y Belleza', icon:'👗', subs:['Ropa','Calzado','Belleza/Cuidado personal']},
+    {group:'Salud', icon:'💊', subs:['Salud','Farmacia']},
+    {group:'Tecnología', icon:'💻', subs:['Tecnología']},
+    {group:'Deporte', icon:'🏋️', subs:['Deporte/Gimnasio']},
+    {group:'Mascotas', icon:'🐾', subs:['Mascotas']},
+    {group:'Viajes', icon:'✈️', subs:['Viajes']},
+    {group:'Regalos', icon:'🎁', subs:['Regalos']},
+    {group:'Pareja', icon:'❤️', subs:['Pareja']},
+    {group:'Otros', icon:'📦', subs:['Libros','Otros variables']}
+  ],
+  'gasto-fijo': [
+    {group:'Vivienda', icon:'🏠', subs:['Alquiler/Hipoteca','Servicios (luz/agua/gas)','Internet/Teléfono']},
+    {group:'Seguros y Pensión', icon:'🛡️', subs:['Seguros','AFP/Pensión']},
+    {group:'Suscripciones', icon:'📺', subs:['Suscripciones']},
+    {group:'Educación', icon:'🎓', subs:['Educación']},
+    {group:'Créditos', icon:'💳', subs:['Cuotas/Créditos']},
+    {group:'Otros', icon:'📦', subs:['Otros fijos']}
+  ]
+};
+// Mapa rápido subcategoría → grupo, y grupo → ícono, por tipo
+const CAT_TO_GROUP = {}, GROUP_ICON = {};
+Object.keys(CATEGORY_GROUPS).forEach(type=>{
+  CAT_TO_GROUP[type]={}; GROUP_ICON[type]={};
+  CATEGORY_GROUPS[type].forEach(g=>{
+    GROUP_ICON[type][g.group]=g.icon;
+    g.subs.forEach(s=>{ CAT_TO_GROUP[type][s]=g.group; });
+  });
+});
+function groupOf(type,cat){ return (CAT_TO_GROUP[type]&&CAT_TO_GROUP[type][cat]) || 'Otros'; }
+
+// Vista unificada de grupos: combina gasto-variable + gasto-fijo bajo el mismo nombre de grupo,
+// para que presupuesto y desglose se organicen SOLO por grupo (no por fijo/variable).
+const CAT_TO_GROUP_ANY = {};
+Object.keys(CATEGORY_GROUPS).forEach(type=>{
+  CATEGORY_GROUPS[type].forEach(g=>{ g.subs.forEach(s=>{ CAT_TO_GROUP_ANY[s]=g.group; }); });
+});
+function groupOfAny(cat){ return CAT_TO_GROUP_ANY[cat] || 'Otros'; }
+
+const ALL_GROUPS = (()=>{
+  const map={};
+  Object.keys(CATEGORY_GROUPS).forEach(type=>{
+    CATEGORY_GROUPS[type].forEach(g=>{
+      if(!map[g.group]) map[g.group]={group:g.group,icon:g.icon,subs:[...g.subs]};
+      else map[g.group].subs.push(...g.subs);
+    });
+  });
+  return Object.values(map);
+})();
+function groupIcon(group){ const g=ALL_GROUPS.find(x=>x.group===group); return g?g.icon:'📦'; }
+
 const CATEGORIES = {
   ingreso: ['Salario','Freelance','Negocio','Inversiones','Alquiler','Bonificación','Premio/Bono','Reembolso','Otros ingresos'],
-  'gasto-variable': ['Supermercado','Restaurantes','Comida rápida','Cafetería','Delivery','Cine','Entretenimiento','Streaming','Salidas/Bares','Transporte','Taxi/Uber','Ropa','Calzado','Salud','Farmacia','Tecnología','Videojuegos','Libros','Mascotas','Belleza/Cuidado personal','Deporte/Gimnasio','Viajes','Regalos','Otros variables'],
-  'gasto-fijo': ['Alquiler/Hipoteca','Servicios (luz/agua/gas)','Internet/Teléfono','Seguros','Suscripciones','Educación','AFP/Pensión','Cuotas/Créditos','Otros fijos'],
+  'gasto-variable': CATEGORY_GROUPS['gasto-variable'].flatMap(g=>g.subs),
+  'gasto-fijo': CATEGORY_GROUPS['gasto-fijo'].flatMap(g=>g.subs),
   ahorro: ['Fondo de emergencia','Jubilación','Vacaciones','Inversión','Meta específica','Bachiller/Estudios','Tecnología','Viaje soñado','Otros ahorros'],
   transferencia: ['Transferencia interna']
 };
@@ -853,7 +915,7 @@ function changeMonth(dir) {
   currentMonth += dir;
   if (currentMonth<0) { currentMonth=11; currentYear--; }
   if (currentMonth>11) { currentMonth=0; currentYear++; }
-  activeCatFilter = null;
+  activeCatFilter = null; activeCatFilterLabel = null;
   render();
 }
 
@@ -861,7 +923,7 @@ function setSubTab(el, filter) {
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
   el.classList.add('active');
   activeFilter = filter;
-  activeCatFilter = null;
+  activeCatFilter = null; activeCatFilterLabel = null;
   renderTransactions();
   renderCatBreakdown();
 }
@@ -890,9 +952,30 @@ function updateFormForType() {
 }
 
 function updateCategorySelect() {
+  const groupSel = document.getElementById('fGroupSelect');
+  const groupLabel = document.getElementById('fGroupLabel');
   const sel = document.getElementById('fCategory');
-  sel.innerHTML = '<option value="">— Categoría —</option>';
-  (CATEGORIES[selectedType]||[]).forEach(c=>sel.innerHTML+=`<option value="${c}">${c}</option>`);
+  const groups = CATEGORY_GROUPS[selectedType];
+  if (groups) {
+    groupSel.style.display = 'block';
+    groupLabel.style.display = 'block';
+    groupSel.innerHTML = '<option value="">— Grupo —</option>' + groups.map(g=>`<option value="${esc(g.group)}">${g.icon} ${esc(g.group)}</option>`).join('');
+    groupSel.value = '';
+    sel.innerHTML = '<option value="">— Selecciona un grupo primero —</option>';
+  } else {
+    groupSel.style.display = 'none';
+    groupLabel.style.display = 'none';
+    sel.innerHTML = '<option value="">— Categoría —</option>';
+    (CATEGORIES[selectedType]||[]).forEach(c=>sel.innerHTML+=`<option value="${esc(c)}">${esc(c)}</option>`);
+  }
+}
+
+function updateSubCategorySelect() {
+  const groupSel = document.getElementById('fGroupSelect');
+  const sel = document.getElementById('fCategory');
+  const groups = CATEGORY_GROUPS[selectedType];
+  const g = groups && groups.find(x=>x.group===groupSel.value);
+  sel.innerHTML = '<option value="">— Categoría —</option>' + (g ? g.subs.map(s=>`<option value="${esc(s)}">${esc(s)}</option>`).join('') : '');
 }
 
 // ─── ACCOUNTS ─────────────────────────────────────────────
@@ -1012,7 +1095,10 @@ function getWeekRange(d) {
   return { start: monday.toISOString().split('T')[0], end: sunday.toISOString().split('T')[0] };
 }
 
-function getCategorySpent(cat, period) {
+// Los presupuestos viven a nivel de GRUPO únicamente (combinan fijo + variable).
+function budgetKey(group) { return catSlug(group); }
+
+function getGroupSpent(group, period) {
   let txs;
   if (period==='semanal') {
     const {start,end} = getWeekRange(new Date());
@@ -1020,37 +1106,30 @@ function getCategorySpent(cat, period) {
   } else {
     txs = getMonthData(getKey()).filter(t=>t.type==='gasto-variable'||t.type==='gasto-fijo');
   }
-  return txs.filter(t=>(t.category||'Sin categoría')===cat).reduce((s,t)=>s+t.amount,0);
+  return txs.filter(t=>groupOfAny(t.category)===group).reduce((s,t)=>s+t.amount,0);
 }
 
 function openBudgetModal() {
-  const txs = getMonthData(getKey());
-  const catMap = {};
-  txs.filter(t=>t.type==='gasto-variable'||t.type==='gasto-fijo').forEach(t=>{
-    const cat = t.category||'Sin categoría';
-    catMap[cat] = (catMap[cat]||0) + t.amount;
-  });
-  const allCats = [...new Set([...CATEGORIES['gasto-variable'], ...CATEGORIES['gasto-fijo'], ...Object.keys(catMap)])];
   const list = document.getElementById('budgetList');
-  list.innerHTML = allCats.map(cat=>{
-    const slug = catSlug(cat);
-    const weekSpent = getCategorySpent(cat,'semanal');
-    const monthSpent = catMap[cat]||0;
-    const wBudget = window.budgets[slug+'_w'];
-    const mBudget = window.budgets[slug+'_m'];
+  list.innerHTML = ALL_GROUPS.map(({group,icon})=>{
+    const key = budgetKey(group);
+    const weekSpent = getGroupSpent(group,'semanal');
+    const monthSpent = getGroupSpent(group,'mensual');
+    const wBudget = window.budgets[key+'_w'];
+    const mBudget = window.budgets[key+'_m'];
     return `<div class="budget-row">
       <div class="budget-row-info">
-        <div class="budget-row-name">${esc(cat)}</div>
+        <div class="budget-row-name">${icon} ${esc(group)}</div>
         <div class="budget-row-spent">Esta semana: ${fmt(weekSpent)} · Este mes: ${fmt(monthSpent)}</div>
       </div>
       <div class="budget-row-periods">
         <div class="budget-period-line">
           <label>Semanal</label>
-          <input type="number" min="0" step="0.01" placeholder="Sin límite" value="${wBudget?wBudget.limit:''}" data-cat="${esc(cat)}" data-period="semanal" id="budgetInput_w_${slug}">
+          <input type="number" min="0" step="0.01" placeholder="Sin límite" value="${wBudget?wBudget.limit:''}" data-group="${esc(group)}" data-period="semanal" id="budgetInput_w_${key}">
         </div>
         <div class="budget-period-line">
           <label>Mensual</label>
-          <input type="number" min="0" step="0.01" placeholder="Sin límite" value="${mBudget?mBudget.limit:''}" data-cat="${esc(cat)}" data-period="mensual" id="budgetInput_m_${slug}">
+          <input type="number" min="0" step="0.01" placeholder="Sin límite" value="${mBudget?mBudget.limit:''}" data-group="${esc(group)}" data-period="mensual" id="budgetInput_m_${key}">
         </div>
       </div>
     </div>`;
@@ -1061,14 +1140,14 @@ function openBudgetModal() {
 async function saveAllBudgets() {
   const inputs = document.querySelectorAll('#budgetList input');
   for (const inp of inputs) {
-    const cat = inp.dataset.cat;
+    const group = inp.dataset.group;
     const period = inp.dataset.period;
-    const slug = catSlug(cat)+(period==='semanal'?'_w':'_m');
+    const key = budgetKey(group)+(period==='semanal'?'_w':'_m');
     const val = parseFloat(inp.value);
     if (!isNaN(val) && val > 0) {
-      await window._saveBudget(slug, { category: cat, limit: val, period });
-    } else if (window.budgets[slug]) {
-      await window._deleteBudget(slug);
+      await window._saveBudget(key, { group, limit: val, period });
+    } else if (window.budgets[key]) {
+      await window._deleteBudget(key);
     }
   }
   closeModal('budgetModal');
@@ -1146,6 +1225,7 @@ async function saveTransaction() {
 function clearForm() {
   ['fDesc','fAmount','fNote'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('fCategory').value='';
+  document.getElementById('fGroupSelect').value='';
   document.getElementById('fAccountFrom').value='';
   document.getElementById('fAccountTo').value='';
   document.getElementById('editingId').value='';
@@ -1174,6 +1254,10 @@ function startEdit(id) {
   document.querySelectorAll('.type-btn').forEach(b=>{b.classList.remove('active'); if(b.dataset.type===tx.type) b.classList.add('active');});
   updateCategorySelect();
   updateFormForType();
+  if (CATEGORY_GROUPS[tx.type] && tx.category) {
+    document.getElementById('fGroupSelect').value = groupOf(tx.type, tx.category);
+    updateSubCategorySelect();
+  }
   document.getElementById('fCategory').value=tx.category||'';
   document.querySelector('.form-panel').scrollIntoView({behavior:'smooth'});
 }
@@ -1258,20 +1342,25 @@ function updateDaySelect() {
   if(!days.includes(cur)) activeDayFilter='all';
 }
 
+function txGroupKey(t) {
+  if (t.type==='gasto-variable'||t.type==='gasto-fijo') return 'grupo::'+groupOfAny(t.category);
+  return t.type+'::'+(t.category||'Sin categoría');
+}
+
 function renderTransactions() {
   updateDaySelect();
   const search=(document.getElementById('searchInput')?.value||'').toLowerCase();
   let txs=getMonthData(getKey());
   if(activeFilter!=='all') txs=txs.filter(t=>t.type===activeFilter);
   if(activeDayFilter!=='all') txs=txs.filter(t=>t.date===activeDayFilter);
-  if(activeCatFilter) txs=txs.filter(t=>(t.category||'Sin categoría')===activeCatFilter);
+  if(activeCatFilter) txs=txs.filter(t=>txGroupKey(t)===activeCatFilter);
   if(search) txs=txs.filter(t=>t.desc.toLowerCase().includes(search)||(t.category||'').toLowerCase().includes(search));
   const grouped={};
   txs.forEach(t=>{if(!grouped[t.date])grouped[t.date]=[];grouped[t.date].push(t);});
   const sortedDates=Object.keys(grouped).sort((a,b)=>b.localeCompare(a));
   const list=document.getElementById('transList'); if(!list) return;
   if(sortedDates.length===0){
-    list.innerHTML=`<div class="empty-state"><div class="empty-icon">📭</div><p>${activeCatFilter?`Sin movimientos en "${activeCatFilter}"`:' No hay registros para este período'}</p></div>`;
+    list.innerHTML=`<div class="empty-state"><div class="empty-icon">📭</div><p>${activeCatFilter?`Sin movimientos en "${activeCatFilterLabel||''}"`:' No hay registros para este período'}</p></div>`;
     return;
   }
   list.innerHTML=sortedDates.map(date=>{
@@ -1305,37 +1394,37 @@ function renderTransactions() {
 
 function esc(str){return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 
-function filterByCategory(cat) {
-  activeCatFilter = activeCatFilter===cat ? null : cat;
+function filterByCategory(key, label) {
+  if (activeCatFilter===key) { activeCatFilter=null; activeCatFilterLabel=null; }
+  else { activeCatFilter=key; activeCatFilterLabel=label; }
   if (activeCatFilter) document.querySelector('.transactions-panel').scrollIntoView({behavior:'smooth',block:'start'});
   renderTransactions(); renderCatBreakdown(); updateCatFilterChip();
 }
 
 function updateCatFilterChip() {
   const c=document.getElementById('catFilterChipContainer'); if(!c) return;
-  c.innerHTML=activeCatFilter?`<button class="cat-filter-chip" onclick="filterByCategory('${esc(activeCatFilter)}')">${esc(activeCatFilter)} ✕</button>`:'';
+  c.innerHTML=activeCatFilter?`<button class="cat-filter-chip" onclick="filterByCategory('${esc(activeCatFilter)}','${esc(activeCatFilterLabel)}')">${esc(activeCatFilterLabel)} ✕</button>`:'';
   const l=document.getElementById('activeCatFilterLabel'); if(!l) return;
-  l.innerHTML=activeCatFilter?`<div class="cat-active-filter">${esc(activeCatFilter)}<button onclick="filterByCategory('${esc(activeCatFilter)}')">✕</button></div>`:'';
+  l.innerHTML=activeCatFilter?`<div class="cat-active-filter">${esc(activeCatFilterLabel)}<button onclick="filterByCategory('${esc(activeCatFilter)}','${esc(activeCatFilterLabel)}')">✕</button></div>`:'';
 }
 
 function renderCharts() {
   const txs=getMonthData(getKey());
-  const {income,gv,gf,savings,expense,balance}=calcSummary(txs);
-  const total=income+gv+gf+savings;
+  const {income,expense,savings,balance}=calcSummary(txs);
   const circ=314; let offset=0;
-  [{id:'donutIngreso',val:income},{id:'donutVariable',val:gv},{id:'donutFijo',val:gf},{id:'donutAhorro',val:savings}].forEach(seg=>{
+  [{id:'donutExpense',val:expense},{id:'donutSavings',val:savings},{id:'donutBalance',val:Math.max(0,balance)}].forEach(seg=>{
     const el=document.getElementById(seg.id); if(!el) return;
-    const dash=total>0?Math.min((seg.val/total)*circ,circ):0;
+    const dash=income>0?Math.min((seg.val/income)*circ,circ):0;
     el.setAttribute('stroke-dasharray',`${dash} ${circ}`);
     el.setAttribute('stroke-dashoffset',`-${offset}`);
     offset+=dash;
   });
   const legend=document.getElementById('donutLegend');
   if(legend) legend.innerHTML=[
-    {label:'Ingreso',val:income,color:'#2d7d5b',pct:total>0?Math.round(income/total*100):0},
-    {label:'G. Variable',val:gv,color:'#e74c3c',pct:total>0?Math.round(gv/total*100):0},
-    {label:'G. Fijo',val:gf,color:'#c0392b',pct:total>0?Math.round(gf/total*100):0},
-    {label:'Ahorro',val:savings,color:'#c8933f',pct:total>0?Math.round(savings/total*100):0},
+    {label:'Ingresos',val:income,color:'#2d7d5b',pct:100},
+    {label:'Gastos',val:expense,color:'#e74c3c',pct:income>0?Math.round(expense/income*100):0},
+    {label:'Ahorros',val:savings,color:'#c8933f',pct:income>0?Math.round(savings/income*100):0},
+    {label:'Saldo',val:balance,color:'#1a2744',pct:income>0?Math.round(Math.max(0,balance)/income*100):0},
   ].map(l=>`<div class="legend-item"><div class="legend-dot" style="background:${l.color}"></div><div><div class="legend-name">${l.label} <span style="font-size:0.66rem;color:#7a8baa">${l.pct}%</span></div><div class="legend-val">${fmt(l.val)}</div></div></div>`).join('');
   const pb=document.getElementById('progressBars');
   if(pb) pb.innerHTML=[
@@ -1346,40 +1435,59 @@ function renderCharts() {
 }
 
 function renderCatBreakdown() {
-  const allTxs=getMonthData(getKey()).filter(t=>activeFilter==='all'||t.type===activeFilter);
+  const allTxs=getMonthData(getKey());
   const catMap={};
-  allTxs.forEach(t=>{const cat=t.category||'Sin categoría';if(!catMap[cat])catMap[cat]={total:0,type:t.type,count:0};catMap[cat].total+=t.amount;catMap[cat].count++;});
+  allTxs.forEach(t=>{
+    const isGasto=(t.type==='gasto-variable'||t.type==='gasto-fijo');
+    const key = isGasto ? 'grupo::'+groupOfAny(t.category) : t.type+'::'+(t.category||'Sin categoría');
+    const label = isGasto ? groupOfAny(t.category) : (t.category||'Sin categoría');
+    if(!catMap[key]) catMap[key]={label,type:t.type,isGasto,total:0,count:0,subs:{}};
+    catMap[key].total+=t.amount;
+    catMap[key].count++;
+    if(isGasto){
+      const sub=t.category||'Sin categoría';
+      catMap[key].subs[sub]=(catMap[key].subs[sub]||0)+t.amount;
+    }
+  });
   const totalGasto=allTxs.filter(t=>t.type==='gasto-variable'||t.type==='gasto-fijo').reduce((s,t)=>s+t.amount,0)||1;
   const sorted=Object.entries(catMap).sort((a,b)=>b[1].total-a[1].total);
   const catColors={ingreso:'#2d7d5b','gasto-variable':'#e74c3c','gasto-fijo':'#c0392b',ahorro:'#c8933f',transferencia:'#2e4270'};
   const grid=document.getElementById('catGrid'); if(!grid) return;
-  grid.innerHTML=sorted.map(([cat,{total,type,count}])=>{
+  grid.innerHTML=sorted.map(([key,{label,type,isGasto,total,count,subs}])=>{
     const pct=Math.round(total/totalGasto*100);
-    const color=catColors[type]||'#7a8baa';
-    const isActive=activeCatFilter===cat;
-    const isGasto=(type==='gasto-variable'||type==='gasto-fijo');
-    const slug=catSlug(cat);
-    const wBudget=isGasto?window.budgets[slug+'_w']:null;
-    const mBudget=isGasto?window.budgets[slug+'_m']:null;
+    const color=isGasto?'#e74c3c':(catColors[type]||'#7a8baa');
+    const isActive=activeCatFilter===key;
+    const icon=isGasto?groupIcon(label):(TYPE_ICONS[type]||'📦');
+    const bKey=isGasto?budgetKey(label):null;
+    const wBudget=bKey?window.budgets[bKey+'_w']:null;
+    const mBudget=bKey?window.budgets[bKey+'_m']:null;
     let barSection='';
-    function budgetBar(spent,limit,label){
+    function budgetBar(spent,limit,per){
       const bpct=Math.round(spent/limit*100);
       const barColor=bpct>=100?'#e74c3c':bpct>=80?'#c8933f':'#2d7d5b';
       const textClass=bpct>=100?'over':bpct>=80?'near':'ok';
       const flag=bpct>=100?' 🚨':bpct>=80?' ⚠️':'';
       return `<div class="cat-pct-bar"><div class="cat-pct-fill" style="width:${Math.min(bpct,100)}%;background:${barColor}"></div></div>
-      <div class="cat-budget-text ${textClass}"><span class="cat-budget-period-tag">${label}</span> ${fmt(spent)} / ${fmt(limit)} · ${bpct}%${flag}</div>`;
+      <div class="cat-budget-text ${textClass}"><span class="cat-budget-period-tag">${per}</span> ${fmt(spent)} / ${fmt(limit)} · ${bpct}%${flag}</div>`;
     }
-    if(wBudget&&wBudget.limit>0) barSection+=budgetBar(getCategorySpent(cat,'semanal'),wBudget.limit,'Semana');
+    if(wBudget&&wBudget.limit>0) barSection+=budgetBar(getGroupSpent(label,'semanal'),wBudget.limit,'Semana');
     if(mBudget&&mBudget.limit>0) barSection+=budgetBar(total,mBudget.limit,'Mes');
     if(!barSection){
       barSection=`<div class="cat-pct-bar"><div class="cat-pct-fill" style="width:${Math.min(pct,100)}%;background:${color}"></div></div>
       <div class="cat-pct-text">${count} mov. · ${pct}%</div>`;
     }
-    return `<div class="cat-card type-${type}${isActive?' active-filter':''}" onclick="filterByCategory('${esc(cat)}')">
-      <div class="cat-name" title="${esc(cat)}">${esc(cat)}</div>
+    let subsHtml='';
+    if(isGasto){
+      const subEntries=Object.entries(subs).sort((a,b)=>b[1]-a[1]);
+      if(subEntries.length>1||(subEntries.length===1&&subEntries[0][0]!==label)){
+        subsHtml=`<div class="cat-subs">${subEntries.map(([s,amt])=>`<span class="cat-sub-chip">${esc(s)} <strong>${fmt(amt)}</strong></span>`).join('')}</div>`;
+      }
+    }
+    return `<div class="cat-card${isGasto?' type-gasto-variable':' type-'+type}${isActive?' active-filter':''}" onclick="filterByCategory('${esc(key)}','${esc(label)}')">
+      <div class="cat-name" title="${esc(label)}">${icon} ${esc(label)}</div>
       <div class="cat-amount">${fmt(total)}</div>
       ${barSection}
+      ${subsHtml}
       <div class="cat-click-hint">${isActive?'✓ Filtrando':'👆 Clic para filtrar'}</div>
     </div>`;
   }).join('');
@@ -1398,9 +1506,9 @@ function renderAnalysis() {
   if(income>0&&pctA<0.1) insights.push({type:'warning',icon:'🎯',title:`Ahorro bajo: ${Math.round(pctA*100)}%`,desc:`Meta recomendada: ahorrar el 20% de tus ingresos = <span class="insight-highlight">${fmt(income*0.2)}</span>/mes. Actualmente ahorras <span class="insight-highlight">${fmt(savings)}</span>.`});
   else if(income>0&&pctA>=0.2) insights.push({type:'good',icon:'🎉',title:`¡Excelente! Ahorrando el ${Math.round(pctA*100)}%`,desc:`Ahorras <span class="insight-highlight">${fmt(savings)}</span> este mes. ¡Estás por encima de la meta del 20%!`});
   const catMap={};
-  txs.filter(t=>t.type==='gasto-variable'||t.type==='gasto-fijo').forEach(t=>{const cat=t.category||'Sin categoría';if(!catMap[cat])catMap[cat]=0;catMap[cat]+=t.amount;});
+  txs.filter(t=>t.type==='gasto-variable'||t.type==='gasto-fijo').forEach(t=>{const g=groupOfAny(t.category);if(!catMap[g])catMap[g]=0;catMap[g]+=t.amount;});
   const topCat=Object.entries(catMap).sort((a,b)=>b[1]-a[1])[0];
-  if(topCat&&income>0){const pctTop=Math.round(topCat[1]/income*100);const lv=pctTop>30?'alert':pctTop>20?'warning':'tip';insights.push({type:lv,icon:'📦',title:`Mayor gasto: ${topCat[0]} (${fmt(topCat[1])})`,desc:`Representa el <span class="insight-highlight">${pctTop}%</span> de tus ingresos. ${pctTop>30?'Muy alto — intenta reducirlo un 20% el próximo mes.':pctTop>20?'Revisa si puedes encontrar alternativas más económicas.':'Nivel razonable.'}`});}
+  if(topCat&&income>0){const pctTop=Math.round(topCat[1]/income*100);const lv=pctTop>30?'alert':pctTop>20?'warning':'tip';insights.push({type:lv,icon:groupIcon(topCat[0]),title:`Mayor gasto: ${topCat[0]} (${fmt(topCat[1])})`,desc:`Representa el <span class="insight-highlight">${pctTop}%</span> de tus ingresos. ${pctTop>30?'Muy alto — intenta reducirlo un 20% el próximo mes.':pctTop>20?'Revisa si puedes encontrar alternativas más económicas.':'Nivel razonable.'}`});}
   if(income>0){const pctF=Math.round(gf/income*100),pctV=Math.round(gv/income*100);
     if(pctF>50) insights.push({type:'tip',icon:'🏠',title:`Gastos fijos altos: ${pctF}%`,desc:`Tus gastos fijos superan el límite recomendado de 50%. Evalúa renegociar alquiler, servicios o suscripciones.`});
     if(pctV>30) insights.push({type:'tip',icon:'🛒',title:`Gastos variables altos: ${pctV}%`,desc:`Tus gastos variables superan el 30% recomendado. Principales áreas a revisar: comida, entretenimiento y transporte.`});
@@ -1410,26 +1518,25 @@ function renderAnalysis() {
     if(proyeccion>income) insights.push({type:'alert',icon:'📅',title:'Proyección: terminarás en negativo',desc:`A tu ritmo actual (<span class="insight-highlight">${fmt(gastosDia)}/día</span>), gastarás <span class="insight-highlight">${fmt(proyeccion)}</span> este mes. No gastes más de <span class="insight-highlight">${fmt(Math.max(0,balance/diasRestantes))}/día</span> los próximos ${diasRestantes} días.`});
     else if(balance>0) insights.push({type:'tip',icon:'📅',title:`${diasRestantes} días restantes · ${fmt(balance)} disponibles`,desc:`Puedes gastar hasta <span class="insight-highlight">${fmt(balance/diasRestantes)}/día</span> sin quedarte en negativo.`});
   }
-  // Presupuestos por categoría (mensual + semanal)
-  const gastoCatMap={};
-  txs.filter(t=>t.type==='gasto-variable'||t.type==='gasto-fijo').forEach(t=>{const cat=t.category||'Sin categoría';gastoCatMap[cat]=(gastoCatMap[cat]||0)+t.amount;});
+  // Presupuestos por grupo (mensual + semanal)
+  const gastoGroupMap={};
+  txs.filter(t=>t.type==='gasto-variable'||t.type==='gasto-fijo').forEach(t=>{const g=groupOfAny(t.category);gastoGroupMap[g]=(gastoGroupMap[g]||0)+t.amount;});
   const budgetAlerts=[];
-  const allBudgetCats=[...new Set([...Object.keys(gastoCatMap),...Object.values(window.budgets).map(b=>b.category)])];
-  allBudgetCats.forEach(cat=>{
-    const slug=catSlug(cat);
-    const mBudget=window.budgets[slug+'_m'];
-    const wBudget=window.budgets[slug+'_w'];
+  ALL_GROUPS.forEach(({group})=>{
+    const key=budgetKey(group);
+    const mBudget=window.budgets[key+'_m'];
+    const wBudget=window.budgets[key+'_w'];
     if(mBudget&&mBudget.limit){
-      const spent=gastoCatMap[cat]||0;
+      const spent=gastoGroupMap[group]||0;
       const bpct=Math.round(spent/mBudget.limit*100);
-      if(bpct>=100) budgetAlerts.push({type:'alert',icon:'🚨',title:`Presupuesto mensual excedido: ${cat}`,desc:`Gastaste <span class="insight-highlight">${fmt(spent)}</span> de un límite mensual de <span class="insight-highlight">${fmt(mBudget.limit)}</span> (${bpct}%).`,pct:bpct});
-      else if(bpct>=80) budgetAlerts.push({type:'warning',icon:'⚠️',title:`Cerca del límite mensual: ${cat}`,desc:`Llevas <span class="insight-highlight">${fmt(spent)}</span> de <span class="insight-highlight">${fmt(mBudget.limit)}</span> (${bpct}%) este mes. Te quedan <span class="insight-highlight">${fmt(mBudget.limit-spent)}</span>.`,pct:bpct});
+      if(bpct>=100) budgetAlerts.push({type:'alert',icon:'🚨',title:`Presupuesto mensual excedido: ${group}`,desc:`Gastaste <span class="insight-highlight">${fmt(spent)}</span> de un límite mensual de <span class="insight-highlight">${fmt(mBudget.limit)}</span> (${bpct}%).`,pct:bpct});
+      else if(bpct>=80) budgetAlerts.push({type:'warning',icon:'⚠️',title:`Cerca del límite mensual: ${group}`,desc:`Llevas <span class="insight-highlight">${fmt(spent)}</span> de <span class="insight-highlight">${fmt(mBudget.limit)}</span> (${bpct}%) este mes. Te quedan <span class="insight-highlight">${fmt(mBudget.limit-spent)}</span>.`,pct:bpct});
     }
     if(wBudget&&wBudget.limit){
-      const spentW=getCategorySpent(cat,'semanal');
+      const spentW=getGroupSpent(group,'semanal');
       const bpctW=Math.round(spentW/wBudget.limit*100);
-      if(bpctW>=100) budgetAlerts.push({type:'alert',icon:'🚨',title:`Presupuesto semanal excedido: ${cat}`,desc:`Llevas <span class="insight-highlight">${fmt(spentW)}</span> de un límite semanal de <span class="insight-highlight">${fmt(wBudget.limit)}</span> (${bpctW}%) esta semana.`,pct:bpctW});
-      else if(bpctW>=80) budgetAlerts.push({type:'warning',icon:'⚠️',title:`Cerca del límite semanal: ${cat}`,desc:`Llevas <span class="insight-highlight">${fmt(spentW)}</span> de <span class="insight-highlight">${fmt(wBudget.limit)}</span> (${bpctW}%) esta semana. Te quedan <span class="insight-highlight">${fmt(wBudget.limit-spentW)}</span>.`,pct:bpctW});
+      if(bpctW>=100) budgetAlerts.push({type:'alert',icon:'🚨',title:`Presupuesto semanal excedido: ${group}`,desc:`Llevas <span class="insight-highlight">${fmt(spentW)}</span> de un límite semanal de <span class="insight-highlight">${fmt(wBudget.limit)}</span> (${bpctW}%) esta semana.`,pct:bpctW});
+      else if(bpctW>=80) budgetAlerts.push({type:'warning',icon:'⚠️',title:`Cerca del límite semanal: ${group}`,desc:`Llevas <span class="insight-highlight">${fmt(spentW)}</span> de <span class="insight-highlight">${fmt(wBudget.limit)}</span> (${bpctW}%) esta semana. Te quedan <span class="insight-highlight">${fmt(wBudget.limit-spentW)}</span>.`,pct:bpctW});
     }
   });
   budgetAlerts.sort((a,b)=>b.pct-a.pct).forEach(a=>insights.push(a));
@@ -1463,15 +1570,16 @@ function renderFlow() {
   }).join('');
 }
 
-function goToMonth(y,m){currentYear=y;currentMonth=m;activeCatFilter=null;showMainTab('movimientos');render();}
+function goToMonth(y,m){currentYear=y;currentMonth=m;activeCatFilter=null;activeCatFilterLabel=null;showMainTab('movimientos');render();}
 
 function downloadData() {
-  let csv='Mes,Tipo,Descripción,Monto,Fecha,Categoría,Nota,Cuenta Origen,Cuenta Destino\n';
+  let csv='Mes,Tipo,Grupo,Descripción,Monto,Fecha,Categoría,Nota,Cuenta Origen,Cuenta Destino\n';
   Object.keys(window.data).sort().forEach(key=>{
     window.data[key].forEach(t=>{
       const accFrom=(window.accounts||[]).find(a=>a.id===t.accountFrom);
       const accTo=(window.accounts||[]).find(a=>a.id===t.accountTo);
-      csv+=`"${key}","${t.type}","${t.desc}","${t.amount}","${t.date}","${t.category||''}","${t.note||''}","${accFrom?accFrom.name:''}","${accTo?accTo.name:''}"\n`;
+      const grupo=(t.type==='gasto-variable'||t.type==='gasto-fijo')?groupOfAny(t.category):'';
+      csv+=`"${key}","${t.type}","${grupo}","${t.desc}","${t.amount}","${t.date}","${t.category||''}","${t.note||''}","${accFrom?accFrom.name:''}","${accTo?accTo.name:''}"\n`;
     });
   });
   const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'});
@@ -1513,4 +1621,3 @@ if('serviceWorker' in navigator){window.addEventListener('load',()=>{navigator.s
 </script>
 </body>
 </html>
-
