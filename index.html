@@ -270,6 +270,29 @@ svg.donut{transform:rotate(-90deg);flex-shrink:0;}
 .flow-num{font-size:0.68rem;color:var(--text-mid);}
 .flow-num strong{display:block;font-size:0.8rem;font-weight:700;color:var(--text-dark);}
 
+/* FLOW v2 (línea) */
+.flow-toolbar{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:14px;}
+.flow-period-tabs,.flow-metric-tabs{display:flex;gap:6px;background:var(--white);padding:4px;border-radius:50px;box-shadow:var(--shadow);}
+.flow-tab,.flow-metric{border:none;background:none;padding:7px 16px;border-radius:50px;font-family:'DM Sans',sans-serif;font-size:0.78rem;font-weight:600;color:var(--text-mid);cursor:pointer;transition:all 0.2s;white-space:nowrap;}
+.flow-tab.active,.flow-metric.active{background:var(--navy);color:var(--white);}
+.flow-stats-bar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;}
+.flow-stat-chip{display:flex;align-items:center;gap:8px;background:var(--white);padding:9px 16px;border-radius:50px;box-shadow:var(--shadow);font-size:0.8rem;font-weight:600;color:var(--text-dark);}
+.flow-stat-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.flow-stat-chip .pos{color:var(--green);}
+.flow-stat-chip .neg{color:var(--red);}
+.flow-chart-card{background:var(--white);border-radius:var(--radius);padding:18px 14px;box-shadow:var(--shadow);margin-bottom:16px;}
+.flow-table-card{background:var(--white);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;}
+.flow-table{width:100%;border-collapse:collapse;}
+.flow-table th{text-align:left;font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:var(--text-light);padding:12px 16px;border-bottom:2px solid var(--cream-dark);}
+.flow-table td{padding:10px 16px;font-size:0.82rem;color:var(--text-dark);border-bottom:1px solid var(--cream-dark);}
+.flow-table tr:last-child td{border-bottom:none;}
+.flow-table .flow-col-income{color:var(--green);font-weight:600;}
+.flow-table .flow-col-expense{color:var(--red);font-weight:600;}
+.flow-table .flow-col-total{color:var(--navy);font-weight:700;}
+.flow-table-total td{background:var(--cream);font-weight:700;}
+.flow-empty{text-align:center;padding:50px 20px;color:var(--text-light);}
+.flow-empty .empty-icon{font-size:2.6rem;margin-bottom:10px;opacity:0.4;}
+
 /* MODAL */
 .modal-overlay{display:none;position:fixed;inset:0;background:rgba(26,39,68,0.6);backdrop-filter:blur(4px);z-index:1000;align-items:center;justify-content:center;}
 .modal-overlay.open{display:flex;}
@@ -599,7 +622,27 @@ svg.donut{transform:rotate(-90deg);flex-shrink:0;}
 
     <!-- VISTA FLUJO -->
     <div id="viewFlujo" style="display:none">
-      <div class="flow-grid" id="flowGrid2"></div>
+      <div class="flow-toolbar">
+        <div class="flow-period-tabs" id="flowPeriodTabs">
+          <button class="flow-tab active" data-period="dia" onclick="setFlowPeriod('dia')">Día</button>
+          <button class="flow-tab" data-period="semana" onclick="setFlowPeriod('semana')">Semana</button>
+          <button class="flow-tab" data-period="mes" onclick="setFlowPeriod('mes')">Mes</button>
+        </div>
+        <div class="flow-metric-tabs" id="flowMetricTabs">
+          <button class="flow-metric active" data-metric="both" onclick="setFlowMetric('both')">Ingresos y Gastos</button>
+          <button class="flow-metric" data-metric="gasto" onclick="setFlowMetric('gasto')">Solo Gastos</button>
+        </div>
+      </div>
+      <div class="flow-stats-bar" id="flowStatsBar"></div>
+      <div class="flow-chart-card">
+        <div id="flowChartWrap"></div>
+      </div>
+      <div class="flow-table-card">
+        <table class="flow-table">
+          <thead><tr><th>Fecha</th><th>Ingresos</th><th>Gastos</th><th>Total</th></tr></thead>
+          <tbody id="flowTableBody"></tbody>
+        </table>
+      </div>
     </div>
   </main>
 </div>
@@ -814,6 +857,8 @@ let deletingId = null;
 let selectedType = 'ingreso';
 let selectedAccType = 'efectivo';
 let currentMainTab = 'movimientos';
+let flowPeriod = 'dia';
+let flowMetric = 'both';
 
 const MONTHS = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 
@@ -1286,6 +1331,7 @@ function render() {
   renderCatBreakdown();
   renderAnalysis();
   if (currentMainTab==='cuentas') renderAccounts();
+  if (currentMainTab==='flujo') renderFlow();
 }
 
 function calcSummary(txs) {
@@ -1545,29 +1591,153 @@ function renderAnalysis() {
   document.getElementById('insightList').innerHTML=`<div class="insight-list">${insights.map(i=>`<div class="insight-item ${i.type}"><div class="insight-icon">${i.icon}</div><div><div class="insight-title">${i.title}</div><div class="insight-desc">${i.desc}</div></div></div>`).join('')||'<div class="no-analysis">✅ Todo en orden</div>'}</div>`;
 }
 
+function setFlowPeriod(p) {
+  flowPeriod = p;
+  document.querySelectorAll('.flow-tab').forEach(b=>b.classList.toggle('active', b.dataset.period===p));
+  renderFlow();
+}
+function setFlowMetric(m) {
+  flowMetric = m;
+  document.querySelectorAll('.flow-metric').forEach(b=>b.classList.toggle('active', b.dataset.metric===m));
+  renderFlow();
+}
+
+function fmtShort(n) {
+  if (Math.abs(n)>=1000) return (n/1000).toFixed(1).replace('.0','')+'k';
+  return Math.round(n).toString();
+}
+
+function getFlowPeriods(period) {
+  const periods=[];
+  if (period==='dia') {
+    const daysInMonth = new Date(currentYear, currentMonth+1, 0).getDate();
+    for (let d=1; d<=daysInMonth; d++) {
+      const ds = `${currentYear}-${String(currentMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+      periods.push({label:`${d}/${currentMonth+1}`, start:ds, end:ds});
+    }
+  } else if (period==='semana') {
+    const {start:curStart} = getWeekRange(new Date());
+    const curMonday = new Date(curStart+'T00:00:00');
+    for (let i=11;i>=0;i--) {
+      const s = new Date(curMonday); s.setDate(curMonday.getDate()-7*i);
+      const e = new Date(s); e.setDate(s.getDate()+6);
+      periods.push({label:`${s.getDate()}/${s.getMonth()+1}`, start:s.toISOString().split('T')[0], end:e.toISOString().split('T')[0]});
+    }
+  } else {
+    for (let i=11;i>=0;i--) {
+      const d = new Date(currentYear, currentMonth-i, 1);
+      const mk = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+      periods.push({label:MONTHS[d.getMonth()].slice(0,3)+' '+String(d.getFullYear()).slice(2), start:mk, end:mk, monthKey:mk});
+    }
+  }
+  return periods;
+}
+
+function sumForPeriod(p, period) {
+  let txs;
+  if (period==='mes') { txs = window.data[p.monthKey] || []; }
+  else { txs = Object.values(window.data).flat().filter(t=>t.date>=p.start && t.date<=p.end); }
+  const income = txs.filter(t=>t.type==='ingreso').reduce((s,t)=>s+t.amount,0);
+  const expense = txs.filter(t=>t.type==='gasto-variable'||t.type==='gasto-fijo').reduce((s,t)=>s+t.amount,0);
+  return { income, expense };
+}
+
+function getFlowStats(data) {
+  const totalIncome = data.reduce((s,d)=>s+d.income,0);
+  const totalExpense = data.reduce((s,d)=>s+d.expense,0);
+  const n = data.length||1;
+  let prevIncome=0, prevExpense=0;
+  if (flowPeriod==='mes') {
+    for (let i=1;i<=n;i++) {
+      const d = new Date(currentYear, currentMonth-n-i+1, 1);
+      const mk = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+      const txs = window.data[mk]||[];
+      prevIncome += txs.filter(t=>t.type==='ingreso').reduce((s,t)=>s+t.amount,0);
+      prevExpense += txs.filter(t=>t.type==='gasto-variable'||t.type==='gasto-fijo').reduce((s,t)=>s+t.amount,0);
+    }
+  } else {
+    const firstDate=data[0].start, lastDate=data[data.length-1].end;
+    const spanDays=Math.round((new Date(lastDate)-new Date(firstDate))/86400000)+1;
+    const prevEnd=new Date(firstDate+'T00:00:00'); prevEnd.setDate(prevEnd.getDate()-1);
+    const prevStart=new Date(prevEnd); prevStart.setDate(prevStart.getDate()-spanDays+1);
+    const ps=prevStart.toISOString().split('T')[0], pe=prevEnd.toISOString().split('T')[0];
+    const txs=Object.values(window.data).flat().filter(t=>t.date>=ps&&t.date<=pe);
+    prevIncome = txs.filter(t=>t.type==='ingreso').reduce((s,t)=>s+t.amount,0);
+    prevExpense = txs.filter(t=>t.type==='gasto-variable'||t.type==='gasto-fijo').reduce((s,t)=>s+t.amount,0);
+  }
+  const pctIncome = prevIncome>0 ? Math.round((totalIncome-prevIncome)/prevIncome*1000)/10 : (totalIncome>0?100:0);
+  const pctExpense = prevExpense>0 ? Math.round((totalExpense-prevExpense)/prevExpense*1000)/10 : (totalExpense>0?100:0);
+  const divisor = flowPeriod==='dia'?n:flowPeriod==='semana'?n*7:n*30;
+  return { totalIncome, totalExpense, avgIncome:totalIncome/Math.max(1,divisor), avgExpense:totalExpense/Math.max(1,divisor), pctIncome, pctExpense };
+}
+
+function renderFlowStats(data) {
+  const bar=document.getElementById('flowStatsBar'); if(!bar) return;
+  const s=getFlowStats(data);
+  let html='';
+  if (flowMetric!=='gasto') {
+    html+=`<div class="flow-stat-chip"><span class="flow-stat-dot" style="background:var(--green)"></span>Ingresos ${fmt(s.avgIncome)}/d <span class="${s.pctIncome>=0?'pos':'neg'}">${s.pctIncome>=0?'+':''}${s.pctIncome}%</span></div>`;
+  }
+  html+=`<div class="flow-stat-chip"><span class="flow-stat-dot" style="background:var(--red)"></span>Gastos ${fmt(s.avgExpense)}/d <span class="${s.pctExpense<=0?'pos':'neg'}">${s.pctExpense>=0?'+':''}${s.pctExpense}%</span></div>`;
+  bar.innerHTML=html;
+}
+
+function renderFlowChart(data) {
+  const el=document.getElementById('flowChartWrap'); if(!el) return;
+  const hasData = data.some(d=>d.income>0||d.expense>0);
+  if (!hasData) {
+    el.innerHTML = `<div class="flow-empty"><div class="empty-icon">📊</div><p>Registra movimientos para ver el flujo</p></div>`;
+    return;
+  }
+  const w=700,h=260,padL=46,padR=14,padT=14,padB=26;
+  const maxVal=Math.max(1,...data.map(d=>Math.max(d.income,flowMetric!=='gasto'?0:0,d.expense)));
+  const n=data.length;
+  const stepX = n>1 ? (w-padL-padR)/(n-1) : 0;
+  const x = i => padL + i*stepX;
+  const y = v => h-padB - (v/maxVal)*(h-padT-padB);
+  let gridHtml='';
+  for (let i=0;i<=4;i++) {
+    const val=maxVal*i/4, yy=y(val);
+    gridHtml+=`<line x1="${padL}" y1="${yy}" x2="${w-padR}" y2="${yy}" stroke="var(--cream-dark)" stroke-width="1"/>`;
+    gridHtml+=`<text x="${padL-6}" y="${yy+3}" font-size="9" fill="var(--text-light)" text-anchor="end">${fmtShort(val)}</text>`;
+  }
+  const labelEvery=Math.max(1,Math.ceil(n/6));
+  let xLabelsHtml='';
+  data.forEach((d,i)=>{
+    if (i%labelEvery===0 || i===n-1) xLabelsHtml+=`<text x="${x(i)}" y="${h-8}" font-size="9" fill="var(--text-light)" text-anchor="middle">${esc(d.label)}</text>`;
+  });
+  const pathFor = key => data.map((d,i)=>`${i===0?'M':'L'}${x(i).toFixed(1)},${y(d[key]).toFixed(1)}`).join(' ');
+  let incomeHtml='';
+  if (flowMetric!=='gasto') {
+    incomeHtml = `<path d="${pathFor('income')}" fill="none" stroke="var(--green)" stroke-width="2.5"/>` +
+      data.map((d,i)=>`<circle cx="${x(i)}" cy="${y(d.income)}" r="2.5" fill="var(--green)"/>`).join('');
+  }
+  const expenseHtml = `<path d="${pathFor('expense')}" fill="none" stroke="var(--red)" stroke-width="2.5"/>` +
+    data.map((d,i)=>`<circle cx="${x(i)}" cy="${y(d.expense)}" r="2.5" fill="var(--red)"/>`).join('');
+  el.innerHTML = `<svg viewBox="0 0 ${w} ${h}" width="100%" height="260" preserveAspectRatio="xMidYMid meet">${gridHtml}${xLabelsHtml}${incomeHtml}${expenseHtml}</svg>`;
+}
+
+function renderFlowTable(data) {
+  const tbody=document.getElementById('flowTableBody'); if(!tbody) return;
+  const totalIncome=data.reduce((s,d)=>s+d.income,0);
+  const totalExpense=data.reduce((s,d)=>s+d.expense,0);
+  let rows=`<tr class="flow-table-total"><td>Σ Total</td><td class="flow-col-income">${fmt(totalIncome)}</td><td class="flow-col-expense">${fmt(totalExpense)}</td><td class="flow-col-total">${fmt(totalIncome-totalExpense)}</td></tr>`;
+  const withData=data.filter(d=>d.income>0||d.expense>0).slice().reverse();
+  if (withData.length===0) {
+    rows+=`<tr><td colspan="4" style="text-align:center;color:var(--text-light);padding:20px">Sin movimientos en este período</td></tr>`;
+  } else {
+    rows+=withData.map(d=>`<tr><td>${esc(d.label)}</td><td class="flow-col-income">${fmt(d.income)}</td><td class="flow-col-expense">${fmt(d.expense)}</td><td class="flow-col-total">${fmt(d.income-d.expense)}</td></tr>`).join('');
+  }
+  tbody.innerHTML=rows;
+}
+
 function renderFlow() {
-  const grid=document.getElementById('flowGrid2'); if(!grid) return;
-  const keys=Object.keys(window.data).filter(k=>window.data[k].length>0).sort().slice(-12);
-  if(keys.length===0){grid.innerHTML=`<div style="grid-column:1/-1;text-align:center;padding:60px;color:var(--text-light)"><div style="font-size:3rem;margin-bottom:12px">📊</div><p>Registra movimientos para ver el flujo mensual</p></div>`;return;}
-  const maxVal=Math.max(...keys.map(k=>Math.max(calcSummary(window.data[k]).income,calcSummary(window.data[k]).expense)),1);
-  grid.innerHTML=keys.map(key=>{
-    const [y,m]=key.split('-');
-    const {income,expense,savings,balance}=calcSummary(window.data[key]);
-    return `<div class="flow-month-card has-data" onclick="goToMonth(${parseInt(y)},${parseInt(m)-1})">
-      <div class="flow-month-name">${MONTHS[parseInt(m)-1]} ${y}</div>
-      <div class="flow-bars">
-        <div class="flow-bar-wrap"><div class="flow-bar bar-income" style="height:${Math.round(income/maxVal*48)}px"></div><div class="flow-bar-label">ING</div></div>
-        <div class="flow-bar-wrap"><div class="flow-bar bar-expense" style="height:${Math.round(expense/maxVal*48)}px"></div><div class="flow-bar-label">GAS</div></div>
-        <div class="flow-bar-wrap"><div class="flow-bar bar-savings" style="height:${Math.max(Math.round(savings/maxVal*48),4)}px"></div><div class="flow-bar-label">AHO</div></div>
-      </div>
-      <div class="flow-nums">
-        <div class="flow-num"><strong style="color:var(--green)">${fmt(income)}</strong>Ingresos</div>
-        <div class="flow-num"><strong style="color:var(--red)">${fmt(expense)}</strong>Gastos</div>
-        <div class="flow-num"><strong style="color:var(--gold)">${fmt(savings)}</strong>Ahorros</div>
-        <div class="flow-num"><strong style="color:${balance>=0?'var(--navy)':'var(--red)'}">${fmt(balance)}</strong>Saldo</div>
-      </div>
-    </div>`;
-  }).join('');
+  const wrap=document.getElementById('flowChartWrap'); if(!wrap) return;
+  const periods=getFlowPeriods(flowPeriod);
+  const data=periods.map(p=>({...p, ...sumForPeriod(p, flowPeriod)}));
+  renderFlowStats(data);
+  renderFlowChart(data);
+  renderFlowTable(data);
 }
 
 function goToMonth(y,m){currentYear=y;currentMonth=m;activeCatFilter=null;activeCatFilterLabel=null;showMainTab('movimientos');render();}
@@ -1614,6 +1784,7 @@ window.traspasarSaldoMesAnterior=traspasarSaldoMesAnterior;window.setDayFilter=s
 window.filterByCategory=filterByCategory;window.openAccountModal=openAccountModal;
 window.selectAccType=selectAccType;window.saveAccount=saveAccount;window.showAccTx=showAccTx;
 window.openBudgetModal=openBudgetModal;window.saveAllBudgets=saveAllBudgets;
+window.setFlowPeriod=setFlowPeriod;window.setFlowMetric=setFlowMetric;
 window.render=render;
 </script>
 <script>
