@@ -700,6 +700,12 @@ svg.donut{transform:rotate(-90deg);flex-shrink:0;}
 </div>
 
 <div class="toast" id="toast"></div>
+<div id="flowTooltip" style="display:none;position:fixed;background:var(--navy);color:#fff;padding:12px 16px;border-radius:12px;font-family:'DM Sans',sans-serif;font-size:0.82rem;box-shadow:0 8px 32px rgba(26,39,68,0.35);z-index:500;pointer-events:none;min-width:160px;border:1px solid rgba(255,255,255,0.1)">
+  <div id="flowTipLabel" style="font-weight:700;margin-bottom:6px;font-size:0.88rem;color:var(--gold-light)"></div>
+  <div id="flowTipIncome" style="display:flex;align-items:center;gap:6px;margin-bottom:3px"><span style="width:8px;height:8px;border-radius:50%;background:#2d7d5b;display:inline-block"></span><span>Ingresos: </span><span id="flowTipIncomeVal" style="font-weight:700;margin-left:auto"></span></div>
+  <div id="flowTipExpense" style="display:flex;align-items:center;gap:6px;margin-bottom:3px"><span style="width:8px;height:8px;border-radius:50%;background:#e74c3c;display:inline-block"></span><span>Gastos: </span><span id="flowTipExpenseVal" style="font-weight:700;margin-left:auto"></span></div>
+  <div id="flowTipTotal" style="border-top:1px solid rgba(255,255,255,0.15);margin-top:6px;padding-top:6px;font-weight:700;text-align:right"></div>
+</div>
 <input type="file" id="importInput" accept=".csv" style="position:fixed;top:-999px;left:-999px;opacity:0;" onchange="importCSV(event)">
 
 <script type="module">
@@ -1624,10 +1630,26 @@ function getFlowPeriods(period) {
       periods.push({label:`${s.getDate()}/${s.getMonth()+1}`, start:s.toISOString().split('T')[0], end:e.toISOString().split('T')[0]});
     }
   } else {
-    for (let i=11;i>=0;i--) {
-      const d = new Date(currentYear, currentMonth-i, 1);
-      const mk = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
-      periods.push({label:MONTHS[d.getMonth()].slice(0,3)+' '+String(d.getFullYear()).slice(2), start:mk, end:mk, monthKey:mk});
+    // Semanas del mes actual
+    const firstDay = new Date(currentYear, currentMonth, 1);
+    const lastDay  = new Date(currentYear, currentMonth+1, 0);
+    // Empezar desde el lunes de la semana que contiene el día 1
+    let ws = new Date(firstDay);
+    const dow = ws.getDay();
+    ws.setDate(ws.getDate() + (dow===0 ? -6 : 1-dow));
+    let wn = 1;
+    while (ws <= lastDay) {
+      const we = new Date(ws); we.setDate(ws.getDate()+6);
+      const cs = new Date(Math.max(firstDay, ws));
+      const ce = new Date(Math.min(lastDay,  we));
+      const mk = `${currentYear}-${String(currentMonth+1).padStart(2,'0')}`;
+      periods.push({
+        label: `Sem ${wn} (${cs.getDate()}-${ce.getDate()})`,
+        start: cs.toISOString().split('T')[0],
+        end:   ce.toISOString().split('T')[0],
+        monthKey: mk
+      });
+      ws.setDate(ws.getDate()+7); wn++;
     }
   }
   return periods;
@@ -1635,7 +1657,7 @@ function getFlowPeriods(period) {
 
 function sumForPeriod(p, period) {
   let txs;
-  if (period==='mes') { txs = window.data[p.monthKey] || []; }
+  if (period==='mes') { txs = Object.values(window.data).flat().filter(t=>t.date>=p.start&&t.date<=p.end); }
   else { txs = Object.values(window.data).flat().filter(t=>t.date>=p.start && t.date<=p.end); }
   const income = txs.filter(t=>t.type==='ingreso').reduce((s,t)=>s+t.amount,0);
   const expense = txs.filter(t=>t.type==='gasto-variable'||t.type==='gasto-fijo').reduce((s,t)=>s+t.amount,0);
@@ -1689,7 +1711,7 @@ function renderFlowChart(data) {
     el.innerHTML = `<div class="flow-empty"><div class="empty-icon">📊</div><p>Registra movimientos para ver el flujo</p></div>`;
     return;
   }
-  const w=700,h=260,padL=46,padR=14,padT=14,padB=26;
+  const w=900,h=400,padL=52,padR=20,padT=20,padB=36;
   const maxVal=Math.max(1,...data.map(d=>Math.max(d.income,flowMetric!=='gasto'?0:0,d.expense)));
   const n=data.length;
   const stepX = n>1 ? (w-padL-padR)/(n-1) : 0;
@@ -1699,22 +1721,23 @@ function renderFlowChart(data) {
   for (let i=0;i<=4;i++) {
     const val=maxVal*i/4, yy=y(val);
     gridHtml+=`<line x1="${padL}" y1="${yy}" x2="${w-padR}" y2="${yy}" stroke="var(--cream-dark)" stroke-width="1"/>`;
-    gridHtml+=`<text x="${padL-6}" y="${yy+3}" font-size="9" fill="var(--text-light)" text-anchor="end">${fmtShort(val)}</text>`;
+    gridHtml+=`<text x="${padL-6}" y="${yy+3}" font-size="11" fill="var(--text-light)" text-anchor="end">${fmtShort(val)}</text>`;
   }
   const labelEvery=Math.max(1,Math.ceil(n/6));
   let xLabelsHtml='';
   data.forEach((d,i)=>{
-    if (i%labelEvery===0 || i===n-1) xLabelsHtml+=`<text x="${x(i)}" y="${h-8}" font-size="9" fill="var(--text-light)" text-anchor="middle">${esc(d.label)}</text>`;
+    if (i%labelEvery===0 || i===n-1) xLabelsHtml+=`<text x="${x(i)}" y="${h-10}" font-size="11" fill="var(--text-light)" text-anchor="middle">${esc(d.label)}</text>`;
   });
   const pathFor = key => data.map((d,i)=>`${i===0?'M':'L'}${x(i).toFixed(1)},${y(d[key]).toFixed(1)}`).join(' ');
+  const tooltipLayerHtml = '';
   let incomeHtml='';
   if (flowMetric!=='gasto') {
     incomeHtml = `<path d="${pathFor('income')}" fill="none" stroke="var(--green)" stroke-width="2.5"/>` +
-      data.map((d,i)=>`<circle cx="${x(i)}" cy="${y(d.income)}" r="2.5" fill="var(--green)"/>`).join('');
+      data.map((d,i)=>`<circle cx="${x(i)}" cy="${y(d.income)}" r="4" fill="var(--green)" class="flow-node" style="cursor:pointer"/><circle cx="${x(i)}" cy="${y(d.income)}" r="14" fill="transparent" class="flow-node-hit" onclick="showFlowTip(event,${JSON.stringify({label:d.label,income:d.income,expense:d.expense})})" style="cursor:pointer"/>`).join('');
   }
   const expenseHtml = `<path d="${pathFor('expense')}" fill="none" stroke="var(--red)" stroke-width="2.5"/>` +
-    data.map((d,i)=>`<circle cx="${x(i)}" cy="${y(d.expense)}" r="2.5" fill="var(--red)"/>`).join('');
-  el.innerHTML = `<svg viewBox="0 0 ${w} ${h}" width="100%" height="260" preserveAspectRatio="xMidYMid meet">${gridHtml}${xLabelsHtml}${incomeHtml}${expenseHtml}</svg>`;
+    data.map((d,i)=>`<circle cx="${x(i)}" cy="${y(d.expense)}" r="4" fill="var(--red)" class="flow-node" style="cursor:pointer"/><circle cx="${x(i)}" cy="${y(d.expense)}" r="14" fill="transparent" class="flow-node-hit" onclick="showFlowTip(event,${JSON.stringify({label:d.label,income:d.income,expense:d.expense})})" style="cursor:pointer"/>`).join('');
+  el.innerHTML = `<svg viewBox="0 0 ${w} ${h}" width="100%" height="400" style="display:block" preserveAspectRatio="xMidYMid meet">${gridHtml}${xLabelsHtml}${incomeHtml}${expenseHtml}${tooltipLayerHtml}</svg>`;
 }
 
 function renderFlowTable(data) {
@@ -1772,6 +1795,39 @@ async function traspasarSaldoMesAnterior() {
   await window._saveToFirestore(tx);
   showToast('Traspasado '+fmt(Math.abs(prevBal))+' de '+prevLabel);
 }
+
+function showFlowTip(event, d) {
+  const tip = document.getElementById('flowTooltip');
+  if (!tip) return;
+  document.getElementById('flowTipLabel').textContent = d.label;
+  document.getElementById('flowTipIncomeVal').textContent = fmt(d.income);
+  document.getElementById('flowTipExpenseVal').textContent = fmt(d.expense);
+  const total = d.income - d.expense;
+  const totalEl = document.getElementById('flowTipTotal');
+  totalEl.textContent = 'Neto: ' + fmt(total);
+  totalEl.style.color = total >= 0 ? '#5de0a0' : '#ff7f7f';
+  // Show income row only if metric is not gasto-only
+  document.getElementById('flowTipIncome').style.display = flowMetric === 'gasto' ? 'none' : 'flex';
+  tip.style.display = 'block';
+  // Position near click but keep on screen
+  const margin = 12;
+  let lx = event.clientX + margin;
+  let ly = event.clientY - tip.offsetHeight/2;
+  if (lx + 180 > window.innerWidth) lx = event.clientX - 180 - margin;
+  if (ly < 8) ly = 8;
+  if (ly + 120 > window.innerHeight) ly = window.innerHeight - 120;
+  tip.style.left = lx + 'px';
+  tip.style.top  = ly + 'px';
+  // Auto-hide after 3s
+  clearTimeout(window._tipTimer);
+  window._tipTimer = setTimeout(() => { tip.style.display = 'none'; }, 3000);
+}
+document.addEventListener('click', (e) => {
+  if (!e.target.classList.contains('flow-node-hit')) {
+    const tip = document.getElementById('flowTooltip');
+    if (tip) tip.style.display = 'none';
+  }
+});
 
 function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2800);}
 
