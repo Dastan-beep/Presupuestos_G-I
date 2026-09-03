@@ -700,12 +700,6 @@ svg.donut{transform:rotate(-90deg);flex-shrink:0;}
 </div>
 
 <div class="toast" id="toast"></div>
-<div id="flowTooltip" style="display:none;position:fixed;background:var(--navy);color:#fff;padding:12px 16px;border-radius:12px;font-family:'DM Sans',sans-serif;font-size:0.82rem;box-shadow:0 8px 32px rgba(26,39,68,0.35);z-index:500;pointer-events:none;min-width:160px;border:1px solid rgba(255,255,255,0.1)">
-  <div id="flowTipLabel" style="font-weight:700;margin-bottom:6px;font-size:0.88rem;color:var(--gold-light)"></div>
-  <div id="flowTipIncome" style="display:flex;align-items:center;gap:6px;margin-bottom:3px"><span style="width:8px;height:8px;border-radius:50%;background:#2d7d5b;display:inline-block"></span><span>Ingresos: </span><span id="flowTipIncomeVal" style="font-weight:700;margin-left:auto"></span></div>
-  <div id="flowTipExpense" style="display:flex;align-items:center;gap:6px;margin-bottom:3px"><span style="width:8px;height:8px;border-radius:50%;background:#e74c3c;display:inline-block"></span><span>Gastos: </span><span id="flowTipExpenseVal" style="font-weight:700;margin-left:auto"></span></div>
-  <div id="flowTipTotal" style="border-top:1px solid rgba(255,255,255,0.15);margin-top:6px;padding-top:6px;font-weight:700;text-align:right"></div>
-</div>
 <input type="file" id="importInput" accept=".csv" style="position:fixed;top:-999px;left:-999px;opacity:0;" onchange="importCSV(event)">
 
 <script type="module">
@@ -1630,35 +1624,29 @@ function getFlowPeriods(period) {
       periods.push({label:`${s.getDate()}/${s.getMonth()+1}`, start:s.toISOString().split('T')[0], end:e.toISOString().split('T')[0]});
     }
   } else {
-    // Semanas del mes actual
+    // 'mes': SIN histórico — solo las semanas del mes actualmente seleccionado
     const firstDay = new Date(currentYear, currentMonth, 1);
-    const lastDay  = new Date(currentYear, currentMonth+1, 0);
-    // Empezar desde el lunes de la semana que contiene el día 1
-    let ws = new Date(firstDay);
-    const dow = ws.getDay();
-    ws.setDate(ws.getDate() + (dow===0 ? -6 : 1-dow));
-    let wn = 1;
-    while (ws <= lastDay) {
-      const we = new Date(ws); we.setDate(ws.getDate()+6);
-      const cs = new Date(Math.max(firstDay, ws));
-      const ce = new Date(Math.min(lastDay,  we));
-      const mk = `${currentYear}-${String(currentMonth+1).padStart(2,'0')}`;
+    const lastDay = new Date(currentYear, currentMonth+1, 0);
+    let cursor = new Date(firstDay);
+    const dow = cursor.getDay();
+    cursor.setDate(cursor.getDate() + (dow===0 ? -6 : 1-dow)); // retrocede al lunes
+    while (cursor <= lastDay) {
+      const rawEnd = new Date(cursor); rawEnd.setDate(cursor.getDate()+6);
+      const weekStart = new Date(Math.max(cursor.getTime(), firstDay.getTime()));
+      const weekEnd = new Date(Math.min(rawEnd.getTime(), lastDay.getTime()));
       periods.push({
-        label: `Sem ${wn} (${cs.getDate()}-${ce.getDate()})`,
-        start: cs.toISOString().split('T')[0],
-        end:   ce.toISOString().split('T')[0],
-        monthKey: mk
+        label: `${weekStart.getDate()}-${weekEnd.getDate()}/${currentMonth+1}`,
+        start: weekStart.toISOString().split('T')[0],
+        end: weekEnd.toISOString().split('T')[0]
       });
-      ws.setDate(ws.getDate()+7); wn++;
+      cursor.setDate(cursor.getDate()+7);
     }
   }
   return periods;
 }
 
-function sumForPeriod(p, period) {
-  let txs;
-  if (period==='mes') { txs = Object.values(window.data).flat().filter(t=>t.date>=p.start&&t.date<=p.end); }
-  else { txs = Object.values(window.data).flat().filter(t=>t.date>=p.start && t.date<=p.end); }
+function sumForPeriod(p) {
+  const txs = Object.values(window.data).flat().filter(t=>t.date>=p.start && t.date<=p.end);
   const income = txs.filter(t=>t.type==='ingreso').reduce((s,t)=>s+t.amount,0);
   const expense = txs.filter(t=>t.type==='gasto-variable'||t.type==='gasto-fijo').reduce((s,t)=>s+t.amount,0);
   return { income, expense };
@@ -1668,28 +1656,17 @@ function getFlowStats(data) {
   const totalIncome = data.reduce((s,d)=>s+d.income,0);
   const totalExpense = data.reduce((s,d)=>s+d.expense,0);
   const n = data.length||1;
-  let prevIncome=0, prevExpense=0;
-  if (flowPeriod==='mes') {
-    for (let i=1;i<=n;i++) {
-      const d = new Date(currentYear, currentMonth-n-i+1, 1);
-      const mk = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
-      const txs = window.data[mk]||[];
-      prevIncome += txs.filter(t=>t.type==='ingreso').reduce((s,t)=>s+t.amount,0);
-      prevExpense += txs.filter(t=>t.type==='gasto-variable'||t.type==='gasto-fijo').reduce((s,t)=>s+t.amount,0);
-    }
-  } else {
-    const firstDate=data[0].start, lastDate=data[data.length-1].end;
-    const spanDays=Math.round((new Date(lastDate)-new Date(firstDate))/86400000)+1;
-    const prevEnd=new Date(firstDate+'T00:00:00'); prevEnd.setDate(prevEnd.getDate()-1);
-    const prevStart=new Date(prevEnd); prevStart.setDate(prevStart.getDate()-spanDays+1);
-    const ps=prevStart.toISOString().split('T')[0], pe=prevEnd.toISOString().split('T')[0];
-    const txs=Object.values(window.data).flat().filter(t=>t.date>=ps&&t.date<=pe);
-    prevIncome = txs.filter(t=>t.type==='ingreso').reduce((s,t)=>s+t.amount,0);
-    prevExpense = txs.filter(t=>t.type==='gasto-variable'||t.type==='gasto-fijo').reduce((s,t)=>s+t.amount,0);
-  }
+  const firstDate=data[0].start, lastDate=data[data.length-1].end;
+  const spanDays=Math.round((new Date(lastDate)-new Date(firstDate))/86400000)+1;
+  const prevEnd=new Date(firstDate+'T00:00:00'); prevEnd.setDate(prevEnd.getDate()-1);
+  const prevStart=new Date(prevEnd); prevStart.setDate(prevStart.getDate()-spanDays+1);
+  const ps=prevStart.toISOString().split('T')[0], pe=prevEnd.toISOString().split('T')[0];
+  const txs=Object.values(window.data).flat().filter(t=>t.date>=ps&&t.date<=pe);
+  const prevIncome = txs.filter(t=>t.type==='ingreso').reduce((s,t)=>s+t.amount,0);
+  const prevExpense = txs.filter(t=>t.type==='gasto-variable'||t.type==='gasto-fijo').reduce((s,t)=>s+t.amount,0);
   const pctIncome = prevIncome>0 ? Math.round((totalIncome-prevIncome)/prevIncome*1000)/10 : (totalIncome>0?100:0);
   const pctExpense = prevExpense>0 ? Math.round((totalExpense-prevExpense)/prevExpense*1000)/10 : (totalExpense>0?100:0);
-  const divisor = flowPeriod==='dia'?n:flowPeriod==='semana'?n*7:n*30;
+  const divisor = flowPeriod==='dia'?n:Math.max(1,Math.round(spanDays));
   return { totalIncome, totalExpense, avgIncome:totalIncome/Math.max(1,divisor), avgExpense:totalExpense/Math.max(1,divisor), pctIncome, pctExpense };
 }
 
@@ -1704,40 +1681,73 @@ function renderFlowStats(data) {
   bar.innerHTML=html;
 }
 
+function hideFlowTooltip() {
+  const tip=document.getElementById('flowTooltip');
+  if (tip) tip.style.display='none';
+}
+
+function showFlowTooltip(evt, label, income, expense) {
+  evt.stopPropagation();
+  const wrap=document.getElementById('flowChartWrap'); if(!wrap) return;
+  const wrapRect=wrap.getBoundingClientRect();
+  let left = evt.clientX - wrapRect.left;
+  let top = evt.clientY - wrapRect.top;
+  let tip=document.getElementById('flowTooltip');
+  if (!tip) { tip=document.createElement('div'); tip.id='flowTooltip'; tip.className='flow-tooltip'; wrap.appendChild(tip); }
+  tip.innerHTML = `<strong>${esc(label)}</strong>` +
+    (flowMetric!=='gasto' ? `<div class="ft-line ft-income">💚 Ingresos: ${fmt(income)}</div>` : '') +
+    `<div class="ft-line ft-expense">❤️ Gastos: ${fmt(expense)}</div>`;
+  tip.style.display='block';
+  // clamp para que no se salga del contenedor
+  const tipW = tip.offsetWidth || 140;
+  left = Math.min(Math.max(left, tipW/2+4), wrapRect.width-tipW/2-4);
+  top = Math.max(top, 34);
+  tip.style.left = left+'px';
+  tip.style.top = top+'px';
+}
+document.addEventListener('click', function(e){
+  if (!e.target.closest('#flowTooltip') && !e.target.closest('.flow-hit')) hideFlowTooltip();
+});
+
 function renderFlowChart(data) {
   const el=document.getElementById('flowChartWrap'); if(!el) return;
+  hideFlowTooltip();
   const hasData = data.some(d=>d.income>0||d.expense>0);
   if (!hasData) {
     el.innerHTML = `<div class="flow-empty"><div class="empty-icon">📊</div><p>Registra movimientos para ver el flujo</p></div>`;
     return;
   }
-  const w=900,h=400,padL=52,padR=20,padT=20,padB=36;
-  const maxVal=Math.max(1,...data.map(d=>Math.max(d.income,flowMetric!=='gasto'?0:0,d.expense)));
+  const w=900,h=420,padL=54,padR=16,padT=20,padB=34;
+  const maxVal=Math.max(1,...data.map(d=>Math.max(d.income,d.expense)));
   const n=data.length;
   const stepX = n>1 ? (w-padL-padR)/(n-1) : 0;
   const x = i => padL + i*stepX;
   const y = v => h-padB - (v/maxVal)*(h-padT-padB);
   let gridHtml='';
-  for (let i=0;i<=4;i++) {
-    const val=maxVal*i/4, yy=y(val);
+  for (let i=0;i<=5;i++) {
+    const val=maxVal*i/5, yy=y(val);
     gridHtml+=`<line x1="${padL}" y1="${yy}" x2="${w-padR}" y2="${yy}" stroke="var(--cream-dark)" stroke-width="1"/>`;
-    gridHtml+=`<text x="${padL-6}" y="${yy+3}" font-size="11" fill="var(--text-light)" text-anchor="end">${fmtShort(val)}</text>`;
+    gridHtml+=`<text x="${padL-8}" y="${yy+4}" font-size="12" fill="var(--text-light)" text-anchor="end">${fmtShort(val)}</text>`;
   }
-  const labelEvery=Math.max(1,Math.ceil(n/6));
+  const labelEvery=Math.max(1,Math.ceil(n/8));
   let xLabelsHtml='';
   data.forEach((d,i)=>{
     if (i%labelEvery===0 || i===n-1) xLabelsHtml+=`<text x="${x(i)}" y="${h-10}" font-size="11" fill="var(--text-light)" text-anchor="middle">${esc(d.label)}</text>`;
   });
   const pathFor = key => data.map((d,i)=>`${i===0?'M':'L'}${x(i).toFixed(1)},${y(d[key]).toFixed(1)}`).join(' ');
-  const tooltipLayerHtml = '';
   let incomeHtml='';
   if (flowMetric!=='gasto') {
-    incomeHtml = `<path d="${pathFor('income')}" fill="none" stroke="var(--green)" stroke-width="2.5"/>` +
-      data.map((d,i)=>`<circle cx="${x(i)}" cy="${y(d.income)}" r="4" fill="var(--green)" class="flow-node" style="cursor:pointer"/><circle cx="${x(i)}" cy="${y(d.income)}" r="14" fill="transparent" class="flow-node-hit" onclick="showFlowTip(event,${JSON.stringify({label:d.label,income:d.income,expense:d.expense})})" style="cursor:pointer"/>`).join('');
+    incomeHtml = `<path d="${pathFor('income')}" fill="none" stroke="var(--green)" stroke-width="3"/>` +
+      data.map((d,i)=>`<circle cx="${x(i)}" cy="${y(d.income)}" r="4" fill="var(--green)" stroke="var(--white)" stroke-width="1.5"/>`).join('');
   }
-  const expenseHtml = `<path d="${pathFor('expense')}" fill="none" stroke="var(--red)" stroke-width="2.5"/>` +
-    data.map((d,i)=>`<circle cx="${x(i)}" cy="${y(d.expense)}" r="4" fill="var(--red)" class="flow-node" style="cursor:pointer"/><circle cx="${x(i)}" cy="${y(d.expense)}" r="14" fill="transparent" class="flow-node-hit" onclick="showFlowTip(event,${JSON.stringify({label:d.label,income:d.income,expense:d.expense})})" style="cursor:pointer"/>`).join('');
-  el.innerHTML = `<svg viewBox="0 0 ${w} ${h}" width="100%" height="400" style="display:block" preserveAspectRatio="xMidYMid meet">${gridHtml}${xLabelsHtml}${incomeHtml}${expenseHtml}${tooltipLayerHtml}</svg>`;
+  const expenseHtml = `<path d="${pathFor('expense')}" fill="none" stroke="var(--red)" stroke-width="3"/>` +
+    data.map((d,i)=>`<circle cx="${x(i)}" cy="${y(d.expense)}" r="4" fill="var(--red)" stroke="var(--white)" stroke-width="1.5"/>`).join('');
+  // columnas invisibles grandes para poder tocar cada nodo cómodamente
+  const hitHtml = data.map((d,i)=>{
+    const colX = x(i) - stepX/2;
+    return `<rect class="flow-hit" x="${(n>1?colX:x(i)-30).toFixed(1)}" y="${padT}" width="${(n>1?stepX:60).toFixed(1)}" height="${h-padT-padB}" fill="transparent" style="cursor:pointer" onclick="showFlowTooltip(event,'${esc(d.label).replace(/'/g,"\\'")}',${d.income},${d.expense})"/>`;
+  }).join('');
+  el.innerHTML = `<svg viewBox="0 0 ${w} ${h}" width="100%" height="380" preserveAspectRatio="xMidYMid meet">${gridHtml}${xLabelsHtml}${incomeHtml}${expenseHtml}${hitHtml}</svg>`;
 }
 
 function renderFlowTable(data) {
@@ -1757,7 +1767,7 @@ function renderFlowTable(data) {
 function renderFlow() {
   const wrap=document.getElementById('flowChartWrap'); if(!wrap) return;
   const periods=getFlowPeriods(flowPeriod);
-  const data=periods.map(p=>({...p, ...sumForPeriod(p, flowPeriod)}));
+  const data=periods.map(p=>({...p, ...sumForPeriod(p)}));
   renderFlowStats(data);
   renderFlowChart(data);
   renderFlowTable(data);
@@ -1795,39 +1805,6 @@ async function traspasarSaldoMesAnterior() {
   await window._saveToFirestore(tx);
   showToast('Traspasado '+fmt(Math.abs(prevBal))+' de '+prevLabel);
 }
-
-function showFlowTip(event, d) {
-  const tip = document.getElementById('flowTooltip');
-  if (!tip) return;
-  document.getElementById('flowTipLabel').textContent = d.label;
-  document.getElementById('flowTipIncomeVal').textContent = fmt(d.income);
-  document.getElementById('flowTipExpenseVal').textContent = fmt(d.expense);
-  const total = d.income - d.expense;
-  const totalEl = document.getElementById('flowTipTotal');
-  totalEl.textContent = 'Neto: ' + fmt(total);
-  totalEl.style.color = total >= 0 ? '#5de0a0' : '#ff7f7f';
-  // Show income row only if metric is not gasto-only
-  document.getElementById('flowTipIncome').style.display = flowMetric === 'gasto' ? 'none' : 'flex';
-  tip.style.display = 'block';
-  // Position near click but keep on screen
-  const margin = 12;
-  let lx = event.clientX + margin;
-  let ly = event.clientY - tip.offsetHeight/2;
-  if (lx + 180 > window.innerWidth) lx = event.clientX - 180 - margin;
-  if (ly < 8) ly = 8;
-  if (ly + 120 > window.innerHeight) ly = window.innerHeight - 120;
-  tip.style.left = lx + 'px';
-  tip.style.top  = ly + 'px';
-  // Auto-hide after 3s
-  clearTimeout(window._tipTimer);
-  window._tipTimer = setTimeout(() => { tip.style.display = 'none'; }, 3000);
-}
-document.addEventListener('click', (e) => {
-  if (!e.target.classList.contains('flow-node-hit')) {
-    const tip = document.getElementById('flowTooltip');
-    if (tip) tip.style.display = 'none';
-  }
-});
 
 function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2800);}
 
