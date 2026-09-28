@@ -254,7 +254,8 @@ body{font-family:'Plus Jakarta Sans',sans-serif;color:var(--text);overscroll-beh
 .day-group{margin-bottom:6px;}
 .day-label{font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.7px;
   color:var(--text-3);padding:8px 2px 5px;display:flex;align-items:center;gap:8px;}
-.day-label::after{content:'';flex:1;height:1px;background:var(--border);}
+.day-line{flex:1;height:1px;background:var(--border);}
+.day-total{font-size:0.72rem;font-weight:800;color:var(--red);letter-spacing:0;white-space:nowrap;}
 .trans-item{display:flex;align-items:center;gap:12px;padding:12px 16px;
   background:var(--surface);border-radius:var(--r-sm);margin-bottom:6px;
   cursor:default;transition:background 0.15s;position:relative;}
@@ -504,9 +505,9 @@ svg.donut{transform:rotate(-90deg);flex-shrink:0;}
   left:50%;transform:translateX(-50%) translateY(60px);
   background:var(--surface-3);color:var(--text);padding:12px 22px;
   border-radius:50px;font-size:0.82rem;font-weight:600;
-  box-shadow:var(--shadow-lg);transition:transform 0.3s;z-index:999;
+  box-shadow:var(--shadow-lg);transition:transform 0.3s,opacity 0.3s;opacity:0;pointer-events:none;z-index:999;
   white-space:nowrap;border:1px solid var(--border);}
-.toast.show{transform:translateX(-50%) translateY(0);}
+.toast.show{transform:translateX(-50%) translateY(0);opacity:1;}
 
 /* LOADING */
 .loading-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.6);
@@ -1247,7 +1248,9 @@ function renderTransactions(){
   list.innerHTML=sortedDates.map(date=>{
     const d=new Date(date+'T00:00:00'),dayLabel=`${d.getDate()} de ${MONTHS[d.getMonth()]}`;
     const items=grouped[date].map(t=>{const accFrom=(window.accounts||[]).find(a=>a.id===t.accountFrom),accTo=(window.accounts||[]).find(a=>a.id===t.accountTo),accTag=accFrom?`<span class="trans-account-tag">${ACC_ICONS[accFrom.type]} ${esc(accFrom.name)}${accTo?' → '+ACC_ICONS[accTo.type]+' '+esc(accTo.name):''}</span>`:'';return`<div class="trans-item"><div class="trans-icon ${t.type}">${TYPE_ICONS[t.type]||'💸'}</div><div class="trans-info"><div class="trans-name">${esc(t.desc)}</div><div class="trans-meta"><span class="trans-badge badge-${t.type}">${TYPE_LABELS[t.type]}</span>${t.category?`<span class="trans-cat">${esc(t.category)}</span>`:''} ${accTag}${t.note?`<span class="trans-cat">· ${esc(t.note)}</span>`:''}</div></div><span class="trans-amount amount-${t.type}">${t.type==='ingreso'?'+':t.type==='transferencia'?'⇄':'-'}${fmt(t.amount)}</span><div class="trans-actions" style="opacity:1"><button class="action-btn btn-edit" onclick="startEdit('${t.id}')">✏️</button><button class="action-btn btn-delete" onclick="deleteTransaction('${t.id}')">🗑️</button></div></div>`;}).join('');
-    return`<div class="day-group"><div class="day-label">${dayLabel}</div>${items}</div>`;
+    const dayGasto=grouped[date].filter(t=>t.type==='gasto-variable'||t.type==='gasto-fijo').reduce((s,t)=>s+t.amount,0);
+    const totalHtml=dayGasto>0?`<span class="day-total">-${fmt(dayGasto)}</span>`:'';
+    return`<div class="day-group"><div class="day-label"><span>${dayLabel}</span><span class="day-line"></span>${totalHtml}</div>${items}</div>`;
   }).join('');
 }
 function esc(str){return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
