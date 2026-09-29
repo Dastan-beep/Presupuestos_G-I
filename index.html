@@ -9,6 +9,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Presupuesto G&I">
 <link rel="manifest" href="manifest.json">
+<script>(function(){var t;try{t=localStorage.getItem('theme');}catch(e){}if(!t)t=(window.matchMedia&&matchMedia('(prefers-color-scheme: light)').matches)?'light':'dark';document.documentElement.setAttribute('data-theme',t);})();</script>
 <title>Presupuesto G&I</title>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
@@ -36,7 +37,25 @@
   --r-xs:8px;
   --nav-h:68px;
   --top-h:56px;
+  --border-strong:rgba(255,255,255,0.16);
+  --nav-bg:rgba(20,32,56,0.95);
+  --overlay-soft:rgba(255,255,255,0.05);
+  color-scheme:dark;
 }
+:root[data-theme="light"]{
+  --bg:#f3f5f9;--surface:#ffffff;--surface-2:#eef1f6;--surface-3:#e1e6ee;
+  --accent:#c77d10;--accent-dim:rgba(199,125,16,0.14);
+  --green:#0a9f74;--green-dim:rgba(10,159,116,0.13);
+  --red:#e03556;--red-dim:rgba(224,53,86,0.12);
+  --blue:#2f7fe0;--blue-dim:rgba(47,127,224,0.12);
+  --text:#0f1b2d;--text-2:rgba(15,27,45,0.65);--text-3:rgba(15,27,45,0.42);
+  --border:rgba(15,27,45,0.10);--border-strong:rgba(15,27,45,0.22);
+  --shadow:0 8px 32px rgba(15,27,45,0.10);--shadow-lg:0 20px 60px rgba(15,27,45,0.18);
+  --nav-bg:rgba(255,255,255,0.92);--overlay-soft:rgba(15,27,45,0.05);
+  color-scheme:light;
+}
+/* Zonas que se mantienen oscuras en ambos temas */
+.balance-hero,.account-card,#topBar{--text:#ffffff;--text-2:rgba(255,255,255,0.6);--text-3:rgba(255,255,255,0.3);--border:rgba(255,255,255,0.08);--green:#00c896;--red:#ff4d6a;--accent:#f0a845;--green-dim:rgba(0,200,150,0.15);--surface:#142038;--surface-2:#1e2f4a;color:#fff;}
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
 html,body{height:100%;overflow:hidden;background:var(--bg);}
 body{font-family:'Plus Jakarta Sans',sans-serif;color:var(--text);overscroll-behavior:none;}
@@ -49,20 +68,20 @@ body{font-family:'Plus Jakarta Sans',sans-serif;color:var(--text);overscroll-beh
 
 /* ─── LOGIN ─────────────────────────────────────── */
 #loginScreen{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
-  background:linear-gradient(160deg,#0d1b2a 0%,#142038 50%,#1e2f4a 100%);z-index:999;}
+  background:linear-gradient(160deg,var(--bg) 0%,var(--surface) 50%,var(--surface-2) 100%);z-index:999;}
 .login-card{width:min(360px,90vw);text-align:center;padding:40px 28px;}
 .login-logo{width:72px;height:72px;background:linear-gradient(135deg,var(--accent),#f8c870);
   border-radius:24px;display:flex;align-items:center;justify-content:center;
   font-size:32px;margin:0 auto 24px;box-shadow:0 12px 40px rgba(240,168,69,0.35);}
 .login-card h1{font-size:1.7rem;font-weight:800;margin-bottom:6px;
-  background:linear-gradient(135deg,#fff,rgba(255,255,255,0.7));
+  background:linear-gradient(135deg,var(--text),var(--text-2));
   -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
 .login-card p{color:var(--text-2);font-size:0.88rem;margin-bottom:36px;line-height:1.6;}
 .btn-google{display:flex;align-items:center;justify-content:center;gap:12px;
   width:100%;padding:16px;background:var(--surface-2);border:1px solid var(--border);
   border-radius:var(--r);cursor:pointer;font-family:inherit;font-size:0.95rem;
   font-weight:600;color:var(--text);transition:all 0.2s;}
-.btn-google:hover{background:var(--surface-3);border-color:rgba(255,255,255,0.16);}
+.btn-google:hover{background:var(--surface-3);border-color:var(--border-strong);}
 .btn-google img{width:22px;height:22px;}
 .login-note{margin-top:20px;font-size:0.72rem;color:var(--text-3);}
 
@@ -76,7 +95,7 @@ body{font-family:'Plus Jakarta Sans',sans-serif;color:var(--text);overscroll-beh
   padding:0 20px;
   padding-top:env(safe-area-inset-top,0px);
   display:flex;align-items:center;justify-content:space-between;
-  background:var(--bg);
+  background:#0d1b2a;
   flex-shrink:0;
   position:relative;z-index:10;
 }
@@ -92,6 +111,10 @@ body{font-family:'Plus Jakarta Sans',sans-serif;color:var(--text);overscroll-beh
   background:var(--accent);display:flex;align-items:center;justify-content:center;
   font-size:0.8rem;font-weight:700;border:2px solid rgba(240,168,69,0.3);}
 .user-avatar-wrap img{width:100%;height:100%;object-fit:cover;}
+.user-menu{position:absolute;top:58px;right:16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-sm);box-shadow:var(--shadow-lg);padding:6px;display:none;z-index:150;min-width:200px;}
+.user-menu.open{display:block;}
+.user-menu button{display:flex;align-items:center;gap:10px;width:100%;padding:11px 12px;background:none;border:none;border-radius:var(--r-xs);font-family:inherit;font-size:0.85rem;font-weight:600;color:var(--text);cursor:pointer;text-align:left;}
+.user-menu button:hover,.user-menu button:active{background:var(--surface-2);}
 
 /* MONTH NAV */
 #monthBar{
@@ -116,7 +139,7 @@ body{font-family:'Plus Jakarta Sans',sans-serif;color:var(--text);overscroll-beh
   position:fixed;bottom:0;left:0;right:0;
   height:calc(var(--nav-h) + env(safe-area-inset-bottom,0px));
   padding-bottom:env(safe-area-inset-bottom,0px);
-  background:rgba(20,32,56,0.95);
+  background:var(--nav-bg);
   backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
   border-top:1px solid var(--border);
   display:flex;align-items:center;justify-content:space-around;
@@ -458,7 +481,7 @@ svg.donut{transform:rotate(-90deg);flex-shrink:0;}
 .flow-table th{padding:10px 14px;text-align:left;font-size:0.62rem;font-weight:700;
   text-transform:uppercase;letter-spacing:0.6px;color:var(--text-3);
   border-bottom:1px solid var(--border);background:var(--surface-2);}
-.flow-table td{padding:10px 14px;border-bottom:1px solid rgba(255,255,255,0.04);}
+.flow-table td{padding:10px 14px;border-bottom:1px solid var(--border);}
 .flow-table tr:last-child td{border-bottom:none;}
 .flow-table-total td{font-weight:700;background:var(--surface-2);}
 .flow-col-income{color:var(--green);}
@@ -478,7 +501,7 @@ svg.donut{transform:rotate(-90deg);flex-shrink:0;}
 .btn-modal{flex:1;padding:12px;border-radius:var(--r-sm);border:1.5px solid var(--border);
   background:var(--surface-2);cursor:pointer;font-family:inherit;font-size:0.85rem;
   font-weight:600;color:var(--text-2);transition:all 0.2s;}
-.btn-modal:hover{border-color:rgba(255,255,255,0.2);color:var(--text);}
+.btn-modal:hover{border-color:var(--border-strong);color:var(--text);}
 .btn-modal.danger{background:var(--red-dim);color:var(--red);border-color:var(--red);}
 .btn-modal.primary{background:var(--accent);color:#0d1b2a;border-color:var(--accent);}
 .acc-type-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:16px;}
@@ -554,11 +577,17 @@ svg.donut{transform:rotate(-90deg);flex-shrink:0;}
     </div>
     <div class="top-right">
       <div class="sync-chip" id="syncBar">☁️</div>
-      <div class="user-avatar-wrap" onclick="logout()">
+      <div class="user-avatar-wrap" onclick="toggleUserMenu(event)">
         <div id="userAvatarPlaceholder">?</div>
         <img id="userAvatar" style="display:none;width:100%;height:100%;object-fit:cover" src="" alt="">
       </div>
     </div>
+  </div>
+
+  <!-- USER MENU -->
+  <div class="user-menu" id="userMenu">
+    <button onclick="toggleTheme()"><span id="themeIcon">☀️</span><span id="themeLabel">Cambiar a tema claro</span></button>
+    <button onclick="logout()"><span>🚪</span><span>Cerrar sesión</span></button>
   </div>
 
   <!-- PAGES -->
@@ -1293,7 +1322,7 @@ function renderCharts(){
     if(restGroups.length)entries.push(['Resto',restGroups.reduce((sum,[,v])=>sum+v,0),'__resto__']);
   }
   const dTotal=entries.reduce((sum,e)=>sum+e[1],0)||1,circ=314;
-  let gOff=0,svgC='<circle cx="60" cy="60" r="50" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="20"/>',lgd='';
+  let gOff=0,svgC='<circle cx="60" cy="60" r="50" fill="none" stroke="rgba(128,128,128,0.15)" stroke-width="20"/>',lgd='';
   entries.forEach(([label,amount,key],i)=>{
     const dash=Math.min((amount/dTotal)*circ,circ),clr=CLR[i%CLR.length],pct=Math.round(amount/dTotal*100);
     const clickAttr=key?` onclick="setDonutDrill('${esc(key)}')"`:'';
@@ -1407,12 +1436,12 @@ function renderFlowChart(data){
   const n=data.length,stepX=n>1?(w-padL-padR)/(n-1):w-padL-padR;
   const x=i=>padL+i*stepX,y=v=>h-padB-(v/maxVal)*(h-padT-padB);
   let gridHtml='';
-  for(let i=0;i<=4;i++){const val=maxVal*i/4,yy=y(val);gridHtml+=`<line x1="${padL}" y1="${yy.toFixed(1)}" x2="${w-padR}" y2="${yy.toFixed(1)}" stroke="rgba(255,255,255,0.06)" stroke-width="1"/>`;gridHtml+=`<text x="${padL-5}" y="${(yy+3).toFixed(1)}" font-size="10" fill="rgba(255,255,255,0.3)" text-anchor="end">${fmtShort(val)}</text>`;}
+  for(let i=0;i<=4;i++){const val=maxVal*i/4,yy=y(val);gridHtml+=`<line x1="${padL}" y1="${yy.toFixed(1)}" x2="${w-padR}" y2="${yy.toFixed(1)}" stroke="rgba(128,128,128,0.18)" stroke-width="1"/>`;gridHtml+=`<text x="${padL-5}" y="${(yy+3).toFixed(1)}" font-size="10" fill="rgba(128,128,128,0.9)" text-anchor="end">${fmtShort(val)}</text>`;}
   const lE=Math.max(1,Math.ceil(n/6));let xHtml='';
-  data.forEach((d,i)=>{if(i%lE===0||i===n-1)xHtml+=`<text x="${x(i).toFixed(1)}" y="${(h-padB+13).toFixed(1)}" font-size="9" fill="rgba(255,255,255,0.3)" text-anchor="middle">${esc(d.label)}</text>`;});
+  data.forEach((d,i)=>{if(i%lE===0||i===n-1)xHtml+=`<text x="${x(i).toFixed(1)}" y="${(h-padB+13).toFixed(1)}" font-size="9" fill="rgba(128,128,128,0.9)" text-anchor="middle">${esc(d.label)}</text>`;});
   const pathFor=key=>data.map((d,i)=>`${i===0?'M':'L'}${x(i).toFixed(1)},${y(d[key]).toFixed(1)}`).join(' ');
-  let inc='';if(flowMetric!=='gasto'){inc=`<path d="${pathFor('income')}" fill="none" stroke="#00c896" stroke-width="2" stroke-linejoin="round"/>`+data.map((d,i)=>`<circle cx="${x(i).toFixed(1)}" cy="${y(d.income).toFixed(1)}" r="3.5" fill="#00c896" stroke="rgba(13,27,42,0.8)" stroke-width="1.5"/>`).join('');}
-  const exp=`<path d="${pathFor('expense')}" fill="none" stroke="#ff4d6a" stroke-width="2" stroke-linejoin="round"/>`+data.map((d,i)=>`<circle cx="${x(i).toFixed(1)}" cy="${y(d.expense).toFixed(1)}" r="3.5" fill="#ff4d6a" stroke="rgba(13,27,42,0.8)" stroke-width="1.5"/>`).join('');
+  let inc='';if(flowMetric!=='gasto'){inc=`<path d="${pathFor('income')}" fill="none" stroke="#00c896" stroke-width="2" stroke-linejoin="round"/>`+data.map((d,i)=>`<circle cx="${x(i).toFixed(1)}" cy="${y(d.income).toFixed(1)}" r="3.5" fill="#00c896" stroke="rgba(128,128,128,0.4)" stroke-width="1.5"/>`).join('');}
+  const exp=`<path d="${pathFor('expense')}" fill="none" stroke="#ff4d6a" stroke-width="2" stroke-linejoin="round"/>`+data.map((d,i)=>`<circle cx="${x(i).toFixed(1)}" cy="${y(d.expense).toFixed(1)}" r="3.5" fill="#ff4d6a" stroke="rgba(128,128,128,0.4)" stroke-width="1.5"/>`).join('');
   const hits=data.map((d,i)=>{const cW=n>1?stepX:60,cX=n>1?x(i)-stepX/2:x(0)-30;return`<rect x="${cX.toFixed(1)}" y="${padT}" width="${cW.toFixed(1)}" height="${h-padT-padB}" fill="transparent" style="cursor:pointer" class="flow-hit" onclick="showFlowTooltip(event,'${esc(d.label).replace(/'/g,"\\'")}',${d.income},${d.expense})"/>`;}).join('');
   el.innerHTML=`<svg viewBox="0 0 ${w} ${h}" width="100%" style="display:block;height:auto" preserveAspectRatio="xMidYMid meet">${gridHtml}${xHtml}${inc}${exp}${hits}</svg>`;
 }
@@ -1422,6 +1451,23 @@ function goToMonth(y,m){currentYear=y;currentMonth=m;activeCatFilter=null;active
 function downloadData(){let csv='Mes,Tipo,Grupo,Descripción,Monto,Fecha,Categoría,Nota,Cuenta Origen,Cuenta Destino\n';Object.keys(window.data).sort().forEach(key=>{window.data[key].forEach(t=>{const aF=(window.accounts||[]).find(a=>a.id===t.accountFrom),aT=(window.accounts||[]).find(a=>a.id===t.accountTo),grp=(t.type==='gasto-variable'||t.type==='gasto-fijo')?groupOfAny(t.category):'';csv+=`"${key}","${t.type}","${grp}","${t.desc}","${t.amount}","${t.date}","${t.category||''}","${t.note||''}","${aF?aF.name:''}","${aT?aT.name:''}"\n`;});});const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`presupuesto_${new Date().toISOString().split('T')[0]}.csv`;a.click();showToast('📥 CSV exportado');}
 async function traspasarSaldoMesAnterior(){const prevDate=new Date(currentYear,currentMonth-1,1),prevKey=prevDate.getFullYear()+'-'+String(prevDate.getMonth()+1).padStart(2,'0'),prevTxs=(window.data[prevKey]||[]).filter(t=>!(t.desc&&t.desc.startsWith('Traspaso saldo'))),prevBal=calcSummary(prevTxs).balance;if(prevBal===0){showToast('El mes anterior tiene saldo S/ 0');return;}const currentKey=getKey(),prevLabel=MONTHS[prevDate.getMonth()]+' '+prevDate.getFullYear();if((window.data[currentKey]||[]).some(t=>t.desc&&t.desc.includes('Traspaso saldo'))){showToast('Ya existe un traspaso este mes');return;}const type=prevBal>0?'ingreso':'gasto-variable',id=Date.now().toString(36)+Math.random().toString(36).slice(2),tx={id,type,desc:'Traspaso saldo '+prevLabel,amount:Math.abs(prevBal),date:new Date().toISOString().split('T')[0],category:'Traspaso',note:'Saldo de '+prevLabel,monthKey:currentKey,accountFrom:null,accountTo:null,accountId:null};await window._saveToFirestore(tx);showToast('Traspasado '+fmt(Math.abs(prevBal))+' de '+prevLabel);}
 function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2800);}
+
+// ─── TEMA / MENÚ USUARIO ──────────────────────────
+function toggleUserMenu(e){e.stopPropagation();document.getElementById('userMenu').classList.toggle('open');}
+document.addEventListener('click',()=>{const m=document.getElementById('userMenu');if(m)m.classList.remove('open');});
+function applyTheme(t){
+  document.documentElement.setAttribute('data-theme',t);
+  const i=document.getElementById('themeIcon'),l=document.getElementById('themeLabel');
+  if(i)i.textContent=t==='light'?'🌙':'☀️';
+  if(l)l.textContent=t==='light'?'Cambiar a tema oscuro':'Cambiar a tema claro';
+  if(typeof render==='function'&&window._appInited)render();
+}
+function toggleTheme(){
+  const t=document.documentElement.getAttribute('data-theme')==='light'?'dark':'light';
+  try{localStorage.setItem('theme',t);}catch(e){}
+  applyTheme(t);
+}
+applyTheme(document.documentElement.getAttribute('data-theme')||'dark');
 
 // Expose
 window.showPage=showPage;window.showMainTab=showMainTab;window.changeMonth=changeMonth;
