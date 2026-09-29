@@ -338,6 +338,9 @@ svg.donut{transform:rotate(-90deg);flex-shrink:0;}
 .legend-name{font-size:0.72rem;font-weight:600;color:var(--text-2);}
 .legend-val{font-size:0.82rem;font-weight:700;}
 
+.donut-back{background:var(--surface-2);border:1px solid var(--border);color:var(--accent);border-radius:50px;padding:4px 10px;font-family:inherit;font-size:0.7rem;font-weight:700;cursor:pointer;margin-right:6px;text-transform:none;letter-spacing:0;}
+.legend-item.clickable{cursor:pointer;}
+.legend-item.clickable:active{opacity:0.6;}
 .progress-item{margin-bottom:14px;}
 .progress-info{display:flex;justify-content:space-between;margin-bottom:5px;}
 .progress-label{font-size:0.75rem;font-weight:600;color:var(--text-2);}
@@ -653,7 +656,7 @@ svg.donut{transform:rotate(-90deg);flex-shrink:0;}
       <div class="page-inner" style="padding-top:12px">
         <!-- Donut chart -->
         <div class="donut-card">
-          <h3>Gastos por grupo</h3>
+          <h3 id="donutTitle">Gastos por grupo</h3>
           <div class="donut-wrap" id="donutWrapDynamic"></div>
         </div>
         <!-- Progress -->
@@ -988,7 +991,7 @@ function showToast(msg){const t=document.getElementById('toast');t.textContent=m
 
 <script>
 window.data={};window.accounts=[];window.budgets={};
-let currentYear,currentMonth,activeFilter='all',activeDayFilter='all',activeCatFilter=null,activeCatFilterLabel=null,deletingId=null,selectedType='ingreso',currentPage='pageInicio',flowPeriod='dia',flowMetric='both';
+let currentYear,currentMonth,activeFilter='all',activeDayFilter='all',activeCatFilter=null,activeCatFilterLabel=null,deletingId=null,selectedType='ingreso',currentPage='pageInicio',flowPeriod='dia',flowMetric='both',donutDrill=null;
 const MONTHS=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 const CATEGORY_GROUPS={'gasto-variable':[{group:'Alimentación',icon:'🍽️',subs:['Supermercado','Restaurantes','Comida rápida','Cafetería','Delivery']},{group:'Transporte',icon:'🚌',subs:['Transporte','Taxi/Uber']},{group:'Ocio y Entretenimiento',icon:'🎉',subs:['Cine','Entretenimiento','Streaming','Salidas/Bares','Videojuegos']},{group:'Ropa y Belleza',icon:'👗',subs:['Ropa','Calzado','Belleza/Cuidado personal']},{group:'Salud',icon:'💊',subs:['Salud','Farmacia']},{group:'Tecnología',icon:'💻',subs:['Tecnología']},{group:'Deporte',icon:'🏋️',subs:['Deporte/Gimnasio']},{group:'Mascotas',icon:'🐾',subs:['Mascotas']},{group:'Viajes',icon:'✈️',subs:['Viajes']},{group:'Regalos',icon:'🎁',subs:['Regalos']},{group:'Pareja',icon:'❤️',subs:['Pareja']},{group:'Otros',icon:'📦',subs:['Libros','Otros variables']}],'gasto-fijo':[{group:'Vivienda',icon:'🏠',subs:['Alquiler/Hipoteca','Servicios (luz/agua/gas)','Internet/Teléfono']},{group:'Seguros y Pensión',icon:'🛡️',subs:['Seguros','AFP/Pensión']},{group:'Suscripciones',icon:'📺',subs:['Suscripciones']},{group:'Educación',icon:'🎓',subs:['Educación']},{group:'Créditos',icon:'💳',subs:['Cuotas/Créditos']},{group:'Otros',icon:'📦',subs:['Otros fijos']}]};
 const CAT_TO_GROUP={},GROUP_ICON={};
@@ -1265,16 +1268,42 @@ function updateCatFilterChip(){
   const l=document.getElementById('activeCatFilterLabel');if(!l)return;
   l.innerHTML=activeCatFilter?`<div class="cat-active-filter">${esc(activeCatFilterLabel)}<button onclick="filterByCategory('${esc(activeCatFilter)}','${esc(activeCatFilterLabel)}')">✕</button></div>`:'';
 }
+function setDonutDrill(g){donutDrill=g;renderCharts();}
 function renderCharts(){
   const txs=getMonthData(getKey());const{income,expense,savings,balance}=calcSummary(txs);
   const gastoTxs=txs.filter(t=>t.type==='gasto-variable'||t.type==='gasto-fijo');
   const groupMap={};gastoTxs.forEach(t=>{const g=groupOfAny(t.category)||'Otros';if(!groupMap[g])groupMap[g]=0;groupMap[g]+=t.amount;});
-  const groupEntries=Object.entries(groupMap).sort((a,b)=>b[1]-a[1]);
-  const topGroups=groupEntries.slice(0,6);if(groupEntries.length>6)topGroups.push(['Otros',groupEntries.slice(6).reduce((s,[,v])=>s+v,0)]);
   const CLR=['#ff4d6a','#f0a845','#00c896','#4d9fff','#9b59b6','#e67e22','#1abc9c','#e91e63'];
-  const circ=314,gTotal=expense||1;let gOff=0,svgC='<circle cx="60" cy="60" r="50" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="20"/>',lgd='';
-  topGroups.forEach(([group,amount],i)=>{const dash=Math.min((amount/gTotal)*circ,circ),clr=CLR[i%CLR.length],pct=Math.round(amount/gTotal*100);svgC+=`<circle cx="60" cy="60" r="50" fill="none" stroke="${clr}" stroke-width="20" stroke-dasharray="${dash.toFixed(1)} ${circ}" stroke-dashoffset="-${gOff.toFixed(1)}" stroke-linecap="round"/>`;gOff+=dash;lgd+=`<div class="legend-item"><div class="legend-dot" style="background:${clr}"></div><div><div class="legend-name">${esc(group)} <span style="font-size:0.62rem;color:var(--text-3)">${pct}%</span></div><div class="legend-val" style="font-size:0.82rem;font-weight:700">${fmt(amount)}</div></div></div>`;});
-  if(!topGroups.length)lgd='<div style="color:var(--text-3);font-size:0.78rem;padding:8px 0">Sin gastos este mes</div>';
+  const groupEntries=Object.entries(groupMap).sort((a,b)=>b[1]-a[1]);
+  const topGroups=groupEntries.slice(0,6),restGroups=groupEntries.slice(6);
+  if(donutDrill&&donutDrill!=='__resto__'&&!groupMap[donutDrill])donutDrill=null;
+  if(donutDrill==='__resto__'&&!restGroups.length)donutDrill=null;
+  const backBtn='<button class="donut-back" onclick="setDonutDrill(null)">← Grupos</button>';
+  let entries,titleHtml='Gastos por grupo';
+  if(donutDrill==='__resto__'){
+    entries=restGroups.map(([g,a])=>[g,a,g]);
+    titleHtml=backBtn+'Resto de grupos';
+  }else if(donutDrill){
+    const subMap={};
+    gastoTxs.forEach(t=>{if((groupOfAny(t.category)||'Otros')===donutDrill){const sc=t.category||'Sin subcategoría';subMap[sc]=(subMap[sc]||0)+t.amount;}});
+    entries=Object.entries(subMap).sort((a,b)=>b[1]-a[1]).map(([sc,a])=>[sc,a,null]);
+    titleHtml=backBtn+groupIcon(donutDrill)+' '+esc(donutDrill)+' · '+fmt(groupMap[donutDrill]);
+  }else{
+    entries=topGroups.map(([g,a])=>[g,a,g]);
+    if(restGroups.length)entries.push(['Resto',restGroups.reduce((sum,[,v])=>sum+v,0),'__resto__']);
+  }
+  const dTotal=entries.reduce((sum,e)=>sum+e[1],0)||1,circ=314;
+  let gOff=0,svgC='<circle cx="60" cy="60" r="50" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="20"/>',lgd='';
+  entries.forEach(([label,amount,key],i)=>{
+    const dash=Math.min((amount/dTotal)*circ,circ),clr=CLR[i%CLR.length],pct=Math.round(amount/dTotal*100);
+    const clickAttr=key?` onclick="setDonutDrill('${esc(key)}')"`:'';
+    svgC+=`<circle cx="60" cy="60" r="50" fill="none" stroke="${clr}" stroke-width="20" stroke-dasharray="${dash.toFixed(1)} ${circ}" stroke-dashoffset="-${gOff.toFixed(1)}" stroke-linecap="round"${key?' style="cursor:pointer"':''}${clickAttr}/>`;
+    gOff+=dash;
+    lgd+=`<div class="legend-item${key?' clickable':''}"${clickAttr}><div class="legend-dot" style="background:${clr}"></div><div><div class="legend-name">${esc(label)} <span style="font-size:0.62rem;color:var(--text-3)">${pct}%</span></div><div class="legend-val" style="font-size:0.82rem;font-weight:700">${fmt(amount)}</div></div></div>`;
+  });
+  if(!entries.length)lgd='<div style="color:var(--text-3);font-size:0.78rem;padding:8px 0">Sin gastos este mes</div>';
+  else if(!donutDrill)lgd+='<div class="cat-click-hint">👆 toca un grupo para ver su detalle</div>';
+  const dt=document.getElementById('donutTitle');if(dt)dt.innerHTML=titleHtml;
   const dw=document.getElementById('donutWrapDynamic');
   if(dw)dw.innerHTML=`<svg class="donut" width="110" height="110" viewBox="0 0 120 120">${svgC}</svg><div class="donut-legend">${lgd}</div>`;
   const pb=document.getElementById('progressBars');
@@ -1405,7 +1434,7 @@ window.filterByCategory=filterByCategory;window.openAccountModal=openAccountModa
 window.selectAccType=selectAccType;window.saveAccount=saveAccount;window.showAccTx=showAccTx;
 window.openBudgetModal=openBudgetModal;window.saveAllBudgets=saveAllBudgets;
 window.setFlowPeriod=setFlowPeriod;window.setFlowMetric=setFlowMetric;
-window.showFlowTooltip=showFlowTooltip;window.openSheet=openSheet;window.closeSheet=closeSheet;
+window.showFlowTooltip=showFlowTooltip;window.setDonutDrill=setDonutDrill;window.openSheet=openSheet;window.closeSheet=closeSheet;
 window.renderTransactions=renderTransactions;window.showToast=showToast;
 // Show FAB label on hover/focus
 const fabEl=document.getElementById('fab'),fabLbl=document.getElementById('fabLabel');
