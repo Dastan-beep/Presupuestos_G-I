@@ -921,7 +921,7 @@ svg.donut{transform:rotate(-90deg);flex-shrink:0;}
 <div class="modal-overlay" id="budgetModal">
   <div class="modal" style="max-width:460px">
     <h3>🎯 Presupuestos</h3>
-    <p>Define tu límite de gasto semanal y mensual por grupo. Te avisaremos cuando te acerques.</p>
+    <p>Define tu límite de gasto semanal y mensual por grupo. Semanas: 1–7, 8–14, 15–21 y 22–fin de mes. Te avisaremos cuando te acerques.</p>
     <div class="budget-list" id="budgetList"></div>
     <div class="modal-actions">
       <button class="btn-modal" onclick="closeModal('budgetModal')">Cerrar</button>
@@ -1168,9 +1168,16 @@ function showAccTx(accId){
 
 // ─── BUDGETS ──────────────────────────────────────
 function catSlug(cat){return String(cat).replace(/[\/\s]+/g,'_').replace(/[^\w-]/g,'');}
+function p2(n){return String(n).padStart(2,'0');}
+function monthWeeks(y,m){
+  const dim=new Date(y,m+1,0).getDate(),res=[];
+  for(let n=1;n<=4;n++){const sd=(n-1)*7+1,ed=n<4?sd+6:dim;res.push({num:n,sd,ed,start:`${y}-${p2(m+1)}-${p2(sd)}`,end:`${y}-${p2(m+1)}-${p2(ed)}`});}
+  return res;
+}
+function budgetWeek(d){return monthWeeks(d.getFullYear(),d.getMonth())[Math.min(4,Math.ceil(d.getDate()/7))-1];}
 function getWeekRange(d){const date=new Date(d),day=date.getDay(),diff=day===0?-6:1-day,mon=new Date(date);mon.setDate(date.getDate()+diff);mon.setHours(0,0,0,0);const sun=new Date(mon);sun.setDate(mon.getDate()+6);return{start:localISO(mon),end:localISO(sun)};}
 function budgetKey(group){return catSlug(group);}
-function getGroupSpent(group,period){let txs;if(period==='semanal'){const{start,end}=getWeekRange(new Date());txs=Object.values(window.data).flat().filter(t=>(t.type==='gasto-variable'||t.type==='gasto-fijo')&&t.date>=start&&t.date<=end);}else{txs=getMonthData(getKey()).filter(t=>t.type==='gasto-variable'||t.type==='gasto-fijo');}return txs.filter(t=>groupOfAny(t.category)===group).reduce((s,t)=>s+t.amount,0);}
+function getGroupSpent(group,period){let txs;if(period==='semanal'){const{start,end}=budgetWeek(new Date());txs=Object.values(window.data).flat().filter(t=>(t.type==='gasto-variable'||t.type==='gasto-fijo')&&t.date>=start&&t.date<=end);}else{txs=getMonthData(getKey()).filter(t=>t.type==='gasto-variable'||t.type==='gasto-fijo');}return txs.filter(t=>groupOfAny(t.category)===group).reduce((s,t)=>s+t.amount,0);}
 function openBudgetModal(){
   const list=document.getElementById('budgetList');
   list.innerHTML=ALL_GROUPS.map(({group,icon})=>{const key=budgetKey(group),wS=getGroupSpent(group,'semanal'),mS=getGroupSpent(group,'mensual'),wB=window.budgets[key+'_w'],mB=window.budgets[key+'_m'];return`<div class="budget-row"><div class="budget-row-info"><div class="budget-row-name">${icon} ${esc(group)}</div><div class="budget-row-spent">Semana: ${fmt(wS)} · Mes: ${fmt(mS)}</div></div><div class="budget-row-periods"><div class="budget-period-line"><label>Semanal</label><input type="number" min="0" step="0.01" placeholder="Sin límite" value="${wB?wB.limit:''}" data-group="${esc(group)}" data-period="semanal"></div><div class="budget-period-line"><label>Mensual</label><input type="number" min="0" step="0.01" placeholder="Sin límite" value="${mB?mB.limit:''}" data-group="${esc(group)}" data-period="mensual"></div></div></div>`;}).join('');
@@ -1377,7 +1384,7 @@ function renderCatBreakdown(){
     const wBudget=bKey?window.budgets[bKey+'_w']:null,mBudget=bKey?window.budgets[bKey+'_m']:null;
     let barSection='';
     function budgetBar(spent,limit,per){const bpct=Math.round(spent/limit*100),bc=bpct>=100?'#ff4d6a':bpct>=80?'#f0a845':'#00c896',tc=bpct>=100?'over':bpct>=80?'near':'ok',flag=bpct>=100?' 🚨':bpct>=80?' ⚠️':'';return`<div class="cat-pct-bar"><div class="cat-pct-fill" style="width:${Math.min(bpct,100)}%;background:${bc}"></div></div><div class="cat-budget-text ${tc}"><span class="cat-budget-period-tag">${per}</span> ${fmt(spent)}/${fmt(limit)} ${bpct}%${flag}</div>`;}
-    if(isCurMonth()&&wBudget&&wBudget.limit>0)barSection+=budgetBar(getGroupSpent(label,'semanal'),wBudget.limit,'Sem');
+    if(isCurMonth()&&wBudget&&wBudget.limit>0)barSection+=budgetBar(getGroupSpent(label,'semanal'),wBudget.limit,'Sem '+budgetWeek(new Date()).num);
     if(mBudget&&mBudget.limit>0)barSection+=budgetBar(total,mBudget.limit,'Mes');
     if(!barSection)barSection=`<div class="cat-pct-bar"><div class="cat-pct-fill" style="width:${Math.min(pct,100)}%;background:${color}"></div></div><div class="cat-pct-text">${count||0} mov. · ${pct}%</div>`;
     let subsHtml='';if(isGasto){const subEntries=Object.entries(subs).sort((a,b)=>b[1]-a[1]);if(subEntries.length>1)subsHtml=`<div class="cat-subs">${subEntries.slice(0,3).map(([s,a])=>`<span class="cat-sub-chip">${esc(s)} <strong>${fmt(a)}</strong></span>`).join('')}</div>`;}
@@ -1414,9 +1421,13 @@ function setFlowMetric(m){flowMetric=m;document.querySelectorAll('.flow-metric')
 function fmtShort(n){if(Math.abs(n)>=1000)return(n/1000).toFixed(1).replace('.0','')+'k';return Math.round(n).toString();}
 function getFlowPeriods(period){
   const periods=[];
-  if(period==='dia'){const dIM=new Date(currentYear,currentMonth+1,0).getDate();for(let d=1;d<=dIM;d++){const ds=`${currentYear}-${String(currentMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;periods.push({label:`${d}/${currentMonth+1}`,start:ds,end:ds});}}
-  else if(period==='semana'){for(let i=11;i>=0;i--){const ref=new Date();ref.setDate(ref.getDate()-i*7);const{start,end}=getWeekRange(ref);const d=new Date(start+'T00:00:00');periods.push({label:`${d.getDate()}/${d.getMonth()+1}`,start,end});}}
-  else{const firstDay=new Date(currentYear,currentMonth,1),lastDay=new Date(currentYear,currentMonth+1,0);let ws=new Date(firstDay);const dow=ws.getDay();ws.setDate(ws.getDate()+(dow===0?-6:1-dow));let wn=1;while(ws<=lastDay){const we=new Date(ws);we.setDate(ws.getDate()+6);const cs=new Date(Math.max(firstDay,ws)),ce=new Date(Math.min(lastDay,we)),mk=`${currentYear}-${String(currentMonth+1).padStart(2,'0')}`;periods.push({label:`S${wn} (${cs.getDate()}-${ce.getDate()})`,start:localISO(cs),end:localISO(ce),monthKey:mk});ws.setDate(ws.getDate()+7);wn++;}}
+  if(period==='dia'){const dIM=new Date(currentYear,currentMonth+1,0).getDate();for(let d=1;d<=dIM;d++){const ds=`${currentYear}-${p2(currentMonth+1)}-${p2(d)}`;periods.push({label:`${d}/${currentMonth+1}`,start:ds,end:ds});}}
+  else if(period==='semana'){
+    const now=new Date(),todayStr=localISO(now);let all=[];
+    for(let i=4;i>=0;i--){const d=new Date(now.getFullYear(),now.getMonth()-i,1);monthWeeks(d.getFullYear(),d.getMonth()).forEach(w=>all.push({label:`S${w.num} ${MONTHS[d.getMonth()].slice(0,3)}`,start:w.start,end:w.end}));}
+    all.filter(w=>w.start<=todayStr).slice(-12).forEach(w=>periods.push(w));
+  }
+  else{monthWeeks(currentYear,currentMonth).forEach(w=>periods.push({label:`S${w.num} (${w.sd}-${w.ed})`,start:w.start,end:w.end,monthKey:`${currentYear}-${p2(currentMonth+1)}`}));}
   return periods;
 }
 function sumForPeriod(p){
@@ -1471,7 +1482,12 @@ function renderFlowChart(data){
   let inc='';if(flowMetric!=='gasto'){inc=`<path d="${pathFor('income')}" fill="none" stroke="#00c896" stroke-width="2" stroke-linejoin="round"/>`+data.map((d,i)=>`<circle cx="${x(i).toFixed(1)}" cy="${y(d.income).toFixed(1)}" r="3.5" fill="#00c896" stroke="rgba(128,128,128,0.4)" stroke-width="1.5"/>`).join('');}
   const exp=`<path d="${pathFor('expense')}" fill="none" stroke="#ff4d6a" stroke-width="2" stroke-linejoin="round"/>`+data.map((d,i)=>`<circle cx="${x(i).toFixed(1)}" cy="${y(d.expense).toFixed(1)}" r="3.5" fill="#ff4d6a" stroke="rgba(128,128,128,0.4)" stroke-width="1.5"/>`).join('');
   const hits=data.map((d,i)=>{const cW=n>1?stepX:60,cX=n>1?x(i)-stepX/2:x(0)-30;return`<rect x="${cX.toFixed(1)}" y="${padT}" width="${cW.toFixed(1)}" height="${h-padT-padB}" fill="transparent" style="cursor:pointer" class="flow-hit" onclick="showFlowTooltip(event,'${esc(d.label).replace(/'/g,"\\'")}',${d.income},${d.expense})"/>`;}).join('');
-  el.innerHTML=`<svg viewBox="0 0 ${w} ${h}" width="100%" style="display:block;height:auto" preserveAspectRatio="xMidYMid meet">${gridHtml}${xHtml}${inc}${exp}${hits}</svg>`;
+  let wk='';
+  if(flowPeriod==='dia'){
+    wk+=`<text x="${padL+3}" y="${padT+9}" font-size="9" fill="rgba(128,128,128,0.9)">S1</text>`;
+    data.forEach((d,i)=>{const dd=parseInt(String(d.start).slice(8,10),10);if(i>0&&(dd===8||dd===15||dd===22)){const xx=x(i)-stepX/2;wk+=`<line x1="${xx.toFixed(1)}" y1="${padT}" x2="${xx.toFixed(1)}" y2="${h-padB}" stroke="rgba(128,128,128,0.35)" stroke-width="1" stroke-dasharray="3 3"/><text x="${(xx+3).toFixed(1)}" y="${padT+9}" font-size="9" fill="rgba(128,128,128,0.9)">S${dd===8?2:dd===15?3:4}</text>`;}});
+  }
+  el.innerHTML=`<svg viewBox="0 0 ${w} ${h}" width="100%" style="display:block;height:auto" preserveAspectRatio="xMidYMid meet">${gridHtml}${wk}${xHtml}${inc}${exp}${hits}</svg>`;
 }
 function renderFlowTable(data){const tbody=document.getElementById('flowTableBody');if(!tbody)return;const tI=data.reduce((s,d)=>s+d.income,0),tE=data.reduce((s,d)=>s+d.expense,0);let rows=`<tr class="flow-table-total"><td>Σ Total</td><td class="flow-col-income">${fmt(tI)}</td><td class="flow-col-expense">${fmt(tE)}</td><td class="flow-col-total">${fmt(tI-tE)}</td></tr>`;const wD=data.filter(d=>d.income>0||d.expense>0).slice().reverse();rows+=wD.length?wD.map(d=>`<tr><td>${esc(d.label)}</td><td class="flow-col-income">${fmt(d.income)}</td><td class="flow-col-expense">${fmt(d.expense)}</td><td class="flow-col-total">${fmt(d.income-d.expense)}</td></tr>`).join(''):`<tr><td colspan="4" style="text-align:center;color:var(--text-3);padding:20px">Sin movimientos</td></tr>`;tbody.innerHTML=rows;}
 function renderFlow(){const wrap=document.getElementById('flowChartWrap');if(!wrap)return;const periods=getFlowPeriods(flowPeriod),data=periods.map(p=>({...p,...sumForPeriod(p)}));renderFlowStats(data);renderFlowChart(data);renderFlowTable(data);}
