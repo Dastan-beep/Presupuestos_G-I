@@ -543,6 +543,7 @@ svg.donut{transform:rotate(-90deg);flex-shrink:0;}
 @keyframes spin{to{transform:rotate(360deg);}}
 
 .wide-btn{width:100%;padding:12px;background:var(--surface);border:1.5px solid var(--border);border-radius:var(--r-sm);font-family:inherit;font-size:0.8rem;font-weight:600;color:var(--text-2);cursor:pointer;margin-bottom:12px;display:flex;align-items:center;justify-content:center;gap:6px;}
+.danger-btn{color:var(--red);border-color:var(--red-dim);}
 .acc-actions{position:absolute;bottom:8px;right:8px;display:flex;gap:4px;}
 .acc-actions .action-btn{width:28px;height:28px;font-size:0.75rem;}
 .cmp-note{font-size:0.68rem;color:var(--text-3);margin-bottom:6px;}
@@ -688,6 +689,7 @@ svg.donut{transform:rotate(-90deg);flex-shrink:0;}
         </select>
         <div id="catFilterChipContainer"></div>
         <div id="transList"></div>
+        <button class="wide-btn danger-btn" style="margin-top:18px" onclick="borrarMesActual()">🗑️ Borrar todos los movimientos de este mes</button>
       </div>
     </div>
 
@@ -1199,7 +1201,7 @@ async function saveTransaction(){
   if((selectedType==='transferencia'||selectedType==='ahorro')&&(!accountFrom||!accountTo)){showToast('⚠️ Selecciona cuenta origen y destino');return;}
   if((selectedType==='transferencia'||selectedType==='ahorro')&&accountFrom===accountTo){showToast('⚠️ Las cuentas deben ser diferentes');return;}
   const d=new Date(date+'T00:00:00'),monthKey=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`,id=editId||(Date.now().toString(36)+Math.random().toString(36).slice(2));
-  const tx={id,type:selectedType,desc,amount,date,category,note,monthKey,accountFrom:accountFrom||null,accountTo:accountTo||null,accountId:accountFrom||null};
+  const tx={id,type:selectedType,desc,amount,date,category,note,monthKey,accountFrom:accountFrom||null,accountTo:(selectedType==='transferencia'||selectedType==='ahorro')?(accountTo||null):null,accountId:accountFrom||null};
   document.getElementById('submitBtn').disabled=true;
   try{await window._saveToFirestore(tx);showToast(editId?'✅ Registro actualizado':'✅ Movimiento registrado');clearForm();closeSheet();}catch(e){showToast('❌ Error al guardar');console.error(e);}
   document.getElementById('submitBtn').disabled=false;
@@ -1574,6 +1576,18 @@ async function copiarFijosMesAnterior(){
     }
     showToast(`✅ ${nuevos.length} gasto(s) fijo(s) copiados`);
   }catch(e){console.error(e);showToast('❌ Error al copiar');}
+}
+async function borrarMesActual(){
+  const key=getKey(),txs=getMonthData(key).slice(),name=`${MONTHS[currentMonth]} ${currentYear}`;
+  if(!txs.length){showToast('Este mes no tiene movimientos');return;}
+  if(!confirm(`Vas a BORRAR los ${txs.length} movimientos de ${name}.\n\nPrimero se descargará una copia (CSV) de todos tus datos; con "Importar CSV" puedes restaurarla.\n\n¿Continuar?`))return;
+  downloadData();
+  if(!confirm(`Última confirmación: borrar ${txs.length} movimientos de ${name}. No se puede deshacer.`))return;
+  try{
+    showToast('⏳ Borrando...');
+    for(let i=0;i<txs.length;i+=20){await Promise.all(txs.slice(i,i+20).map(t=>window._deleteFromFirestore(t.id)));}
+    showToast(`🗑️ ${txs.length} movimientos de ${name} borrados`);
+  }catch(e){console.error(e);showToast('❌ Error al borrar, revisa tu conexión');}
 }
 async function deleteAccount(id){
   const acc=(window.accounts||[]).find(a=>a.id===id);if(!acc)return;
