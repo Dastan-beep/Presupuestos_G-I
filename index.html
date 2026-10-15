@@ -467,26 +467,66 @@ svg.donut{transform:rotate(-90deg);flex-shrink:0;}
 #flowChartWrap svg{display:block;height:auto;}
 .flow-empty{text-align:center;padding:40px;color:var(--text-3);}
 .flow-empty .empty-icon{font-size:2.5rem;margin-bottom:10px;opacity:0.4;}
-.flow-tooltip{position:fixed;background:var(--surface-3);border:1px solid var(--border);
-  padding:12px 14px;border-radius:var(--r-sm);font-size:0.78rem;
-  box-shadow:var(--shadow-lg);pointer-events:none;z-index:500;min-width:150px;display:none;}
-.flow-tooltip-label{font-weight:700;color:var(--accent);margin-bottom:6px;font-size:0.82rem;}
-.flow-tooltip-row{display:flex;align-items:center;gap:6px;margin-bottom:3px;}
-.flow-tooltip-dot{width:7px;height:7px;border-radius:50%;}
-.flow-tooltip-key{color:var(--text-2);}
-.flow-tooltip-val{margin-left:auto;font-weight:700;}
-.flow-tooltip-total{border-top:1px solid var(--border);margin-top:6px;padding-top:6px;font-weight:700;text-align:right;}
-.flow-table-wrap{background:var(--surface);border-radius:var(--r);overflow:hidden;margin-bottom:12px;}
-.flow-table{width:100%;border-collapse:collapse;font-size:0.78rem;}
-.flow-table th{padding:10px 14px;text-align:left;font-size:0.62rem;font-weight:700;
+.flow-tooltip{
+  position:fixed;
+  background:#ffffff !important;
+  color:#0f1b2d !important;
+  border:1.5px solid rgba(0,0,0,0.12) !important;
+  padding:12px 14px;
+  border-radius:14px;
+  font-size:0.8rem;
+  box-shadow:0 14px 44px rgba(0,0,0,0.5),0 4px 14px rgba(0,0,0,0.2) !important;
+  pointer-events:auto;
+  z-index:2000;
+  min-width:185px;
+  max-width:260px;
+  display:none;
+  transition:transform 0.12s ease, opacity 0.12s ease;
+}
+.flow-tooltip-label{font-weight:800;color:#0f1b2d !important;margin-bottom:6px;font-size:0.84rem;display:flex;align-items:center;justify-content:space-between;}
+.flow-tooltip-row{display:flex;align-items:center;gap:8px;margin-bottom:5px;font-size:0.77rem;}
+.flow-tooltip-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
+.flow-tooltip-key{color:#4a5568 !important;font-weight:600;}
+.flow-tooltip-val{margin-left:auto;font-weight:800;color:#0f1b2d !important;}
+.flow-tooltip-total{border-top:1px solid #e2e8f0 !important;margin-top:6px;padding-top:6px;font-weight:800;text-align:right;color:#0f1b2d !important;}
+.flow-node-highlight{filter:drop-shadow(0 0 6px rgba(240,168,69,0.9));stroke:#ffffff !important;stroke-width:2.5px !important;}
+.flow-node-card{background:#ffffff;color:#0f1b2d;border-radius:14px;padding:12px 14px;border:1.5px solid rgba(0,0,0,0.12);box-shadow:0 6px 20px rgba(0,0,0,0.25);margin-top:10px;}
+.flow-table-wrap{
+  background:var(--surface);
+  border-radius:var(--r);
+  overflow-x:auto;
+  -webkit-overflow-scrolling:touch;
+  touch-action:pan-x pan-y;
+  margin-bottom:12px;
+  border:1px solid var(--border);
+  scrollbar-width:thin;
+  scrollbar-color:var(--accent) var(--surface-2);
+}
+.flow-table-wrap::-webkit-scrollbar{
+  height:7px !important;
+  display:block !important;
+}
+.flow-table-wrap::-webkit-scrollbar-track{
+  background:var(--surface-2);
+  border-radius:4px;
+}
+.flow-table-wrap::-webkit-scrollbar-thumb{
+  background:var(--accent);
+  border-radius:4px;
+}
+.flow-table{width:100%;min-width:390px;border-collapse:collapse;font-size:0.78rem;}
+.flow-table th,.flow-table td{padding:10px 12px;white-space:nowrap;}
+.flow-table th{padding:10px 12px;text-align:left;font-size:0.62rem;font-weight:700;
   text-transform:uppercase;letter-spacing:0.6px;color:var(--text-3);
   border-bottom:1px solid var(--border);background:var(--surface-2);}
-.flow-table td{padding:10px 14px;border-bottom:1px solid var(--border);}
+.flow-table td{padding:10px 12px;border-bottom:1px solid var(--border);}
 .flow-table tr:last-child td{border-bottom:none;}
 .flow-table-total td{font-weight:700;background:var(--surface-2);}
-.flow-col-income{color:var(--green);}
-.flow-col-expense{color:var(--red);}
-.flow-col-total{font-weight:700;}
+.flow-col-income{color:var(--green);font-weight:700;}
+.flow-col-expense{color:var(--red);font-weight:700;}
+.flow-col-savings{color:var(--accent);font-weight:700;}
+.flow-col-total{font-weight:800;}
+.swipe-hint{display:flex;align-items:center;justify-content:space-between;font-size:0.68rem;color:var(--text-3);padding:4px 6px 6px;}
 
 /* ─── MODALS ─────────────────────────────────────── */
 .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);
@@ -568,17 +608,14 @@ svg.donut{transform:rotate(-90deg);flex-shrink:0;}
 .cmp-chip.bad{background:var(--red-dim);color:var(--red);}
 .recent-empty{text-align:center;padding:24px;color:var(--text-3);font-size:0.82rem;}
 
-/* ─── COLLAPSIBLE SECTIONS ─────────────────────── */
+/* ─── SECCIONES (SIEMPRE VISIBLES COMO ANTES) ─── */
 .collapsible-section{margin-bottom:12px;}
-.collapsible-header{cursor:pointer;user-select:none;display:flex;align-items:center;justify-content:space-between;padding:4px 2px;}
-.collapsible-header:hover .section-title{color:var(--text);}
-.collapsible-header:hover .collapse-arrow{color:var(--accent);}
+.collapsible-header{user-select:none;display:flex;align-items:center;justify-content:space-between;padding:4px 2px;}
 .collapse-meta{display:flex;align-items:center;gap:6px;}
-.collapse-badge{font-size:0.65rem;color:var(--accent);background:var(--accent-dim);border:1px solid rgba(240,168,69,0.3);padding:2px 8px;border-radius:50px;font-weight:700;display:none;}
-.collapse-arrow{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;background:var(--surface-2);color:var(--text-3);font-size:0.75rem;transition:transform 0.25s cubic-bezier(0.4,0,0.2,1);line-height:1;}
-.collapsible-section.is-collapsed .collapsible-body{display:none !important;}
-.collapsible-section.is-collapsed .collapse-arrow{transform:rotate(-90deg);}
-.collapsible-section.is-collapsed .collapse-badge{display:inline-block;}
+.collapse-badge{display:none !important;}
+.collapse-arrow{display:none !important;}
+.collapsible-body{display:block !important;}
+.collapsible-section.is-collapsed .collapsible-body{display:block !important;}
 
 /* ─── CUADRAR DINERO REAL (CONTROL DE CALIDAD) ──── */
 .qc-btn{
@@ -702,12 +739,8 @@ svg.donut{transform:rotate(-90deg);flex-shrink:0;}
         
         <!-- SECCIÓN: Balance y Resumen General -->
         <div class="collapsible-section" id="secInicioBalance">
-          <div class="collapsible-header" onclick="toggleSectionCollapse('secInicioBalance')">
+          <div class="collapsible-header">
             <span class="section-title">📊 Resumen General</span>
-            <div class="collapse-meta">
-              <span class="collapse-badge" id="badgeInicioBalance">Ver disponible</span>
-              <span class="collapse-arrow">▾</span>
-            </div>
           </div>
           <div class="collapsible-body">
             <!-- Balance hero -->
@@ -770,13 +803,9 @@ svg.donut{transform:rotate(-90deg);flex-shrink:0;}
 
         <!-- SECCIÓN: Recent transactions -->
         <div class="collapsible-section" id="secInicioRecent">
-          <div class="collapsible-header" onclick="toggleSectionCollapse('secInicioRecent')">
+          <div class="collapsible-header">
             <span class="section-title">Últimos movimientos</span>
-            <div class="collapse-meta">
-              <button class="section-link" onclick="event.stopPropagation();showPage('pageMovimientos')">Ver todos →</button>
-              <span class="collapse-badge" id="badgeInicioRecent">Movimientos</span>
-              <span class="collapse-arrow">▾</span>
-            </div>
+            <button class="section-link" onclick="showPage('pageMovimientos')">Ver todos →</button>
           </div>
           <div class="collapsible-body">
             <div id="recentList"><div class="recent-empty">Registra tu primer movimiento con el botón +</div></div>
@@ -785,13 +814,9 @@ svg.donut{transform:rotate(-90deg);flex-shrink:0;}
 
         <!-- SECCIÓN: Insights preview -->
         <div class="collapsible-section" id="secInicioInsights">
-          <div class="collapsible-header" onclick="toggleSectionCollapse('secInicioInsights')">
+          <div class="collapsible-header">
             <span class="section-title">Análisis y Recomendaciones</span>
-            <div class="collapse-meta">
-              <button class="section-link" onclick="event.stopPropagation();showPage('pageAnalisis')">Ver más →</button>
-              <span class="collapse-badge">Consejos</span>
-              <span class="collapse-arrow">▾</span>
-            </div>
+            <button class="section-link" onclick="showPage('pageAnalisis')">Ver más →</button>
           </div>
           <div class="collapsible-body">
             <div id="insightPreview"></div>
@@ -807,12 +832,8 @@ svg.donut{transform:rotate(-90deg);flex-shrink:0;}
         
         <!-- SECCIÓN: Herramientas y Filtros -->
         <div class="collapsible-section" id="secMovTools">
-          <div class="collapsible-header" onclick="toggleSectionCollapse('secMovTools')">
+          <div class="collapsible-header">
             <span class="section-title">🔍 Filtros y Búsqueda</span>
-            <div class="collapse-meta">
-              <span class="collapse-badge">Filtros</span>
-              <span class="collapse-arrow">▾</span>
-            </div>
           </div>
           <div class="collapsible-body">
             <button class="wide-btn" onclick="copiarFijosMesAnterior()">🔁 Copiar gastos fijos del mes anterior</button>
@@ -836,12 +857,8 @@ svg.donut{transform:rotate(-90deg);flex-shrink:0;}
 
         <!-- SECCIÓN: Lista de Movimientos -->
         <div class="collapsible-section" id="secMovList">
-          <div class="collapsible-header" onclick="toggleSectionCollapse('secMovList')">
+          <div class="collapsible-header">
             <span class="section-title">📋 Registro del Mes</span>
-            <div class="collapse-meta">
-              <span class="collapse-badge" id="badgeMovListCount">0 registros</span>
-              <span class="collapse-arrow">▾</span>
-            </div>
           </div>
           <div class="collapsible-body">
             <div id="transList"></div>
@@ -865,13 +882,9 @@ svg.donut{transform:rotate(-90deg);flex-shrink:0;}
 
         <!-- SECCIÓN: METAS DE AHORRO -->
         <div class="collapsible-section" id="secAnMetas">
-          <div class="collapsible-header" onclick="toggleSectionCollapse('secAnMetas')">
+          <div class="collapsible-header">
             <span class="section-title">🎯 Metas de Ahorro</span>
-            <div class="collapse-meta">
-              <button class="section-link" style="font-size:0.72rem" onclick="event.stopPropagation();openGoalModal()">＋ Nueva meta</button>
-              <span class="collapse-badge" id="badgeMetasCount">Metas</span>
-              <span class="collapse-arrow">▾</span>
-            </div>
+            <button class="section-link" style="font-size:0.72rem" onclick="openGoalModal()">＋ Nueva meta</button>
           </div>
           <div class="collapsible-body">
             <div id="savingsGoalsList"></div>
@@ -880,12 +893,8 @@ svg.donut{transform:rotate(-90deg);flex-shrink:0;}
 
         <!-- SECCIÓN: Donut chart -->
         <div class="collapsible-section" id="secAnDonut">
-          <div class="collapsible-header" onclick="toggleSectionCollapse('secAnDonut')">
+          <div class="collapsible-header">
             <span class="section-title">🍩 Gastos por Grupo</span>
-            <div class="collapse-meta">
-              <span class="collapse-badge">Gráfico</span>
-              <span class="collapse-arrow">▾</span>
-            </div>
           </div>
           <div class="collapsible-body">
             <div class="donut-card">
@@ -897,12 +906,8 @@ svg.donut{transform:rotate(-90deg);flex-shrink:0;}
 
         <!-- SECCIÓN: Progress -->
         <div class="collapsible-section" id="secAnProgress">
-          <div class="collapsible-header" onclick="toggleSectionCollapse('secAnProgress')">
+          <div class="collapsible-header">
             <span class="section-title">📈 Progreso del Mes</span>
-            <div class="collapse-meta">
-              <span class="collapse-badge">Metas</span>
-              <span class="collapse-arrow">▾</span>
-            </div>
           </div>
           <div class="collapsible-body">
             <div class="card" style="margin-bottom:12px">
@@ -914,12 +919,8 @@ svg.donut{transform:rotate(-90deg);flex-shrink:0;}
 
         <!-- SECCIÓN: Comparación -->
         <div class="collapsible-section" id="secAnCompare">
-          <div class="collapsible-header" onclick="toggleSectionCollapse('secAnCompare')">
+          <div class="collapsible-header">
             <span class="section-title">🔄 Vs. Mes Anterior</span>
-            <div class="collapse-meta">
-              <span class="collapse-badge">Comparativa</span>
-              <span class="collapse-arrow">▾</span>
-            </div>
           </div>
           <div class="collapsible-body">
             <div class="card" style="margin-bottom:12px">
@@ -931,13 +932,9 @@ svg.donut{transform:rotate(-90deg);flex-shrink:0;}
 
         <!-- SECCIÓN: Cat breakdown -->
         <div class="collapsible-section" id="secAnCats">
-          <div class="collapsible-header" onclick="toggleSectionCollapse('secAnCats')">
+          <div class="collapsible-header">
             <span class="section-title">🏷️ Por Categoría</span>
-            <div class="collapse-meta">
-              <button class="cat-budget-btn" style="width:auto;padding:5px 12px;margin:0" onclick="event.stopPropagation();openBudgetModal()">🎯 Presupuestos</button>
-              <span class="collapse-badge">Categorías</span>
-              <span class="collapse-arrow">▾</span>
-            </div>
+            <button class="cat-budget-btn" style="width:auto;padding:5px 12px;margin:0" onclick="openBudgetModal()">🎯 Presupuestos</button>
           </div>
           <div class="collapsible-body">
             <div id="activeCatFilterLabel" style="margin-bottom:8px"></div>
@@ -947,12 +944,8 @@ svg.donut{transform:rotate(-90deg);flex-shrink:0;}
 
         <!-- SECCIÓN: Insights -->
         <div class="collapsible-section" id="secAnInsights">
-          <div class="collapsible-header" onclick="toggleSectionCollapse('secAnInsights')">
+          <div class="collapsible-header">
             <span class="section-title">💡 Recomendaciones</span>
-            <div class="collapse-meta">
-              <span class="collapse-badge">Consejos</span>
-              <span class="collapse-arrow">▾</span>
-            </div>
           </div>
           <div class="collapsible-body">
             <div id="insightList"></div>
@@ -975,12 +968,8 @@ svg.donut{transform:rotate(-90deg);flex-shrink:0;}
 
         <!-- SECCIÓN: Grid de Cuentas -->
         <div class="collapsible-section" id="secCuentasGrid">
-          <div class="collapsible-header" onclick="toggleSectionCollapse('secCuentasGrid')">
+          <div class="collapsible-header">
             <span class="section-title">🏦 Mis Cuentas</span>
-            <div class="collapse-meta">
-              <span class="collapse-badge" id="badgeCuentasCount">Cuentas</span>
-              <span class="collapse-arrow">▾</span>
-            </div>
           </div>
           <div class="collapsible-body">
             <div class="acc-grid" id="accountsGrid"></div>
@@ -989,12 +978,8 @@ svg.donut{transform:rotate(-90deg);flex-shrink:0;}
 
         <!-- SECCIÓN: Totales Consolidados -->
         <div class="collapsible-section" id="secCuentasTotals">
-          <div class="collapsible-header" onclick="toggleSectionCollapse('secCuentasTotals')">
+          <div class="collapsible-header">
             <span class="section-title">📊 Totales Consolidados</span>
-            <div class="collapse-meta">
-              <span class="collapse-badge">Totales</span>
-              <span class="collapse-arrow">▾</span>
-            </div>
           </div>
           <div class="collapsible-body">
             <div class="acc-totals">
@@ -1016,12 +1001,8 @@ svg.donut{transform:rotate(-90deg);flex-shrink:0;}
 
         <!-- SECCIÓN: Movimientos por cuenta -->
         <div class="collapsible-section" id="secCuentasTx">
-          <div class="collapsible-header" onclick="toggleSectionCollapse('secCuentasTx')">
+          <div class="collapsible-header">
             <span class="section-title">📋 Movimientos por cuenta</span>
-            <div class="collapse-meta">
-              <span class="collapse-badge">Historial</span>
-              <span class="collapse-arrow">▾</span>
-            </div>
           </div>
           <div class="collapsible-body">
             <div id="accountTxList"><p style="color:var(--text-3);font-size:0.82rem;text-align:center;padding:16px">Toca una cuenta arriba para ver sus movimientos</p></div>
@@ -1045,12 +1026,8 @@ svg.donut{transform:rotate(-90deg);flex-shrink:0;}
         <div id="flujoPeriodView">
           <!-- SECCIÓN: Controles y Métricas -->
           <div class="collapsible-section" id="secFlujoControls">
-            <div class="collapsible-header" onclick="toggleSectionCollapse('secFlujoControls')">
+            <div class="collapsible-header">
               <span class="section-title">⏱️ Periodo y Métricas</span>
-              <div class="collapse-meta">
-                <span class="collapse-badge">Filtros</span>
-                <span class="collapse-arrow">▾</span>
-              </div>
             </div>
             <div class="collapsible-body">
               <div class="flow-period-row" id="flowPeriodTabs">
@@ -1068,33 +1045,31 @@ svg.donut{transform:rotate(-90deg);flex-shrink:0;}
 
           <!-- SECCIÓN: Gráfico de Flujo -->
           <div class="collapsible-section" id="secFlujoChart">
-            <div class="collapsible-header" onclick="toggleSectionCollapse('secFlujoChart')">
+            <div class="collapsible-header">
               <span class="section-title">📈 Curva de Flujo</span>
-              <div class="collapse-meta">
-                <span class="collapse-badge">Gráfico</span>
-                <span class="collapse-arrow">▾</span>
-              </div>
             </div>
             <div class="collapsible-body">
               <div class="flow-chart-card">
                 <div id="flowChartWrap"></div>
+                <!-- PLAQUITA BLANCA DE INFORMACIÓN DEL NODO SELECCIONADO -->
+                <div id="flowNodeDetailBox" style="display:none" class="flow-node-card"></div>
               </div>
             </div>
           </div>
 
           <!-- SECCIÓN: Tabla Detallada -->
           <div class="collapsible-section" id="secFlujoTable">
-            <div class="collapsible-header" onclick="toggleSectionCollapse('secFlujoTable')">
+            <div class="collapsible-header">
               <span class="section-title">📑 Detalle en Tabla</span>
-              <div class="collapse-meta">
-                <span class="collapse-badge">Tabla</span>
-                <span class="collapse-arrow">▾</span>
-              </div>
             </div>
             <div class="collapsible-body">
+              <div class="swipe-hint">
+                <span>👈 Desliza para ver Ingresos, Gastos, Ahorro y Neto</span>
+                <span>👉</span>
+              </div>
               <div class="flow-table-wrap">
                 <table class="flow-table">
-                  <thead><tr><th>Fecha</th><th>Ingresos</th><th>Gastos</th><th>Total</th></tr></thead>
+                  <thead><tr><th>Fecha / Periodo</th><th>Ingresos</th><th>Gastos</th><th>Ahorro</th><th>Neto</th></tr></thead>
                   <tbody id="flowTableBody"></tbody>
                 </table>
               </div>
@@ -1112,44 +1087,46 @@ svg.donut{transform:rotate(-90deg);flex-shrink:0;}
         <div id="flujoEvolView" style="display:none">
           <!-- SECCIÓN: Resumen Patrimonial -->
           <div class="collapsible-section" id="secEvolSummary">
-            <div class="collapsible-header" onclick="toggleSectionCollapse('secEvolSummary')">
+            <div class="collapsible-header">
               <span class="section-title">🌱 Progreso Patrimonial</span>
-              <div class="collapse-meta">
-                <span class="collapse-badge">Resumen</span>
-                <span class="collapse-arrow">▾</span>
-              </div>
             </div>
             <div class="collapsible-body">
               <div class="evol-stats" id="evolStatsWrap"></div>
             </div>
           </div>
 
+          <!-- SELECTOR DE MÉTRICA DE EVOLUCIÓN -->
+          <div class="flow-metric-row" id="evolMetricTabs" style="margin-bottom:12px;overflow-x:auto;padding-bottom:2px">
+            <button class="flow-metric active" data-evolmetric="total" onclick="setEvolMetric('total')">🟡 Total (Disponible + Ahorro)</button>
+            <button class="flow-metric" data-evolmetric="available" onclick="setEvolMetric('available')">🔵 Solo Disponible</button>
+            <button class="flow-metric" data-evolmetric="savings" onclick="setEvolMetric('savings')">🟢 Solo Ahorro</button>
+            <button class="flow-metric" data-evolmetric="all" onclick="setEvolMetric('all')">🌈 Ver los 3 juntos</button>
+          </div>
+
           <!-- SECCIÓN: Gráfica de Evolución -->
           <div class="collapsible-section" id="secEvolChart">
-            <div class="collapsible-header" onclick="toggleSectionCollapse('secEvolChart')">
-              <span class="section-title">📈 Curva de Crecimiento (Disponible + Ahorro)</span>
-              <div class="collapse-meta">
-                <span class="collapse-badge">Curva</span>
-                <span class="collapse-arrow">▾</span>
-              </div>
+            <div class="collapsible-header">
+              <span class="section-title" id="evolChartTitle">📈 Curva de Crecimiento</span>
             </div>
             <div class="collapsible-body">
               <div class="flow-chart-card">
                 <div id="evolChartWrap"></div>
+                <!-- PLAQUITA BLANCA DE INFORMACIÓN EN EVOLUCIÓN -->
+                <div id="evolNodeDetailBox" style="display:none" class="flow-node-card"></div>
               </div>
             </div>
           </div>
 
           <!-- SECCIÓN: Historial Mensual de Avance -->
           <div class="collapsible-section" id="secEvolTable">
-            <div class="collapsible-header" onclick="toggleSectionCollapse('secEvolTable')">
+            <div class="collapsible-header">
               <span class="section-title">📋 Avance Mes a Mes</span>
-              <div class="collapse-meta">
-                <span class="collapse-badge">Tabla</span>
-                <span class="collapse-arrow">▾</span>
-              </div>
             </div>
             <div class="collapsible-body">
+              <div class="swipe-hint">
+                <span>👈 Desliza para ver Disponible, Ahorro, Total y Avance</span>
+                <span>👉</span>
+              </div>
               <div class="flow-table-wrap">
                 <table class="flow-table">
                   <thead><tr><th>Mes</th><th>Disponible</th><th>Ahorro</th><th>Total</th><th>Avance</th></tr></thead>
@@ -1396,7 +1373,9 @@ svg.donut{transform:rotate(-90deg);flex-shrink:0;}
     <p>Define tu límite de gasto semanal y mensual por grupo. Semanas: 1–7, 8–14, 15–21 y 22–fin de mes. Te avisaremos cuando te acerques.</p>
     <div class="budget-list" id="budgetList"></div>
     <div class="modal-actions">
-      <button class="btn-modal" onclick="closeModal('budgetModal')">Cerrar</button>
+      <button class="btn-modal" onclick="closeModal('budgetModal')">Cancelar</button>
+      <button class="btn-modal primary" onclick="saveAllBudgets()">💾 Guardar Presupuestos</button>
+    </div>
   </div>
 </div>
 
@@ -1466,6 +1445,14 @@ svg.donut{transform:rotate(-90deg);flex-shrink:0;}
       Balance integral de desempeño financiero: cumplimiento presupuestario, variaciones contra el mes anterior y tasa de ahorro.
     </p>
 
+    <!-- AVISO DE CONTROL EN CUALQUIER DÍA DEL MES -->
+    <div style="background:var(--surface-3);border-radius:var(--r-sm);padding:9px 12px;margin-bottom:12px;display:flex;align-items:flex-start;gap:8px;border:1px solid var(--border)">
+      <span style="font-size:1.1rem;line-height:1">⚡</span>
+      <div style="font-size:0.73rem;color:var(--text-2);line-height:1.4">
+        <strong style="color:var(--text)">Disponible en cualquier momento del mes:</strong> No necesitas esperar al último día. Puedes auditar cómo vas contra tus presupuestos y ejecutar el balance hoy mismo con los movimientos acumulados a la fecha.
+      </div>
+    </div>
+
     <!-- VEREDICTO DE PROCESO -->
     <div id="cierreVerdictBox" class="cierre-verdict"></div>
 
@@ -1497,7 +1484,7 @@ svg.donut{transform:rotate(-90deg);flex-shrink:0;}
     <div class="card-sm" style="background:var(--surface-2);border-radius:var(--r-sm);padding:14px;margin-bottom:12px;border:1px solid var(--border)">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
         <span style="font-size:0.75rem;font-weight:700;text-transform:uppercase;color:var(--text-2);letter-spacing:0.5px">🎯 Cumplimiento de Presupuestos</span>
-        <button class="section-link" style="font-size:0.72rem" onclick="openBudgetModal()">Ajustar límites</button>
+        <button class="section-link" style="font-size:0.72rem" onclick="openBudgetModal()">Modificar límites →</button>
       </div>
       <div id="cierreBudgetRows" style="display:flex;flex-direction:column;gap:8px"></div>
     </div>
@@ -1510,25 +1497,35 @@ svg.donut{transform:rotate(-90deg);flex-shrink:0;}
       <div id="cierreDeltasRows"></div>
     </div>
 
-    <div class="modal-actions">
+    <div class="modal-actions" style="flex-wrap:wrap;gap:8px">
       <button class="btn-modal" onclick="closeModal('cierreMesModal')">Cerrar</button>
+      <button class="btn-modal" style="background:linear-gradient(135deg,var(--green),#00f0b4);color:#0d1b2a;font-weight:800;border:none" onclick="ejecutarCierreDeMes()">⚡ Ejecutar Cierre y Control</button>
       <button class="btn-modal primary" onclick="downloadData()">📥 Exportar Reporte</button>
     </div>
   </div>
 </div>
 
 <!-- FLOW TOOLTIP -->
+<!-- FLOW / EVOL TOOLTIP (PLAQUITA DE INFORMACIÓN) -->
 <div class="flow-tooltip" id="flowTooltip">
-  <div class="flow-tooltip-label" id="flowTipLabel"></div>
-  <div class="flow-tooltip-row" id="flowTipIncomeRow">
-    <div class="flow-tooltip-dot" style="background:var(--green)"></div>
-    <span class="flow-tooltip-key">Ingresos</span>
-    <span class="flow-tooltip-val green" id="flowTipIncomeVal"></span>
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+    <div class="flow-tooltip-label" id="flowTipLabel" style="margin:0;font-size:0.86rem;font-weight:800"></div>
+    <button onclick="hideFlowTooltip()" style="background:none;border:none;color:#718096;font-size:1.05rem;cursor:pointer;padding:0 4px;line-height:1;font-weight:700">✕</button>
   </div>
-  <div class="flow-tooltip-row">
-    <div class="flow-tooltip-dot" style="background:var(--red)"></div>
-    <span class="flow-tooltip-key">Gastos</span>
-    <span class="flow-tooltip-val red" id="flowTipExpenseVal"></span>
+  <div class="flow-tooltip-row" id="flowTipRow1">
+    <div class="flow-tooltip-dot" id="flowTipDot1" style="background:#00c896"></div>
+    <span class="flow-tooltip-key" id="flowTipKey1">Ingresos</span>
+    <span class="flow-tooltip-val" id="flowTipVal1"></span>
+  </div>
+  <div class="flow-tooltip-row" id="flowTipRow2">
+    <div class="flow-tooltip-dot" id="flowTipDot2" style="background:#ff4d6a"></div>
+    <span class="flow-tooltip-key" id="flowTipKey2">Gastos</span>
+    <span class="flow-tooltip-val" id="flowTipVal2"></span>
+  </div>
+  <div class="flow-tooltip-row" id="flowTipRow3" style="display:none">
+    <div class="flow-tooltip-dot" id="flowTipDot3" style="background:#f0a845"></div>
+    <span class="flow-tooltip-key" id="flowTipKey3">Ahorros</span>
+    <span class="flow-tooltip-val" id="flowTipVal3"></span>
   </div>
   <div class="flow-tooltip-total" id="flowTipTotal"></div>
 </div>
@@ -2329,41 +2326,202 @@ function sumForPeriod(p){
   else{txs=Object.values(window.data).flat().filter(t=>t.date>=p.start&&t.date<=p.end);}
   const income=txs.filter(t=>t.type==='ingreso').reduce((s,t)=>s+t.amount,0);
   const expense=txs.filter(t=>t.type==='gasto-variable'||t.type==='gasto-fijo').reduce((s,t)=>s+t.amount,0);
-  return{income,expense};
+  const savings=txs.filter(t=>t.type==='ahorro').reduce((s,t)=>s+t.amount,0);
+  return{income,expense,savings};
 }
 function renderFlowStats(data){
   const el=document.getElementById('flowStatsBar');if(!el)return;
-  const totalInc=data.reduce((s,d)=>s+d.income,0),totalExp=data.reduce((s,d)=>s+d.expense,0);
-  const n=data.filter(d=>d.income>0||d.expense>0).length||1;
+  const totalInc=data.reduce((s,d)=>s+d.income,0),totalExp=data.reduce((s,d)=>s+d.expense,0),totalSav=data.reduce((s,d)=>s+(d.savings||0),0);
+  const n=data.filter(d=>d.income>0||d.expense>0||(d.savings||0)>0).length||1;
   const avgInc=totalInc/n,avgExp=totalExp/n;
-  el.innerHTML=`<div class="flow-stat-chip"><div class="fsc-dot" style="background:var(--green)"></div><span class="fsc-txt">Ingresos/${flowPeriod==='dia'?'día':'semana'}</span><span class="fsc-val">${fmt(avgInc)}</span></div><div class="flow-stat-chip"><div class="fsc-dot" style="background:var(--red)"></div><span class="fsc-txt">Gastos/${flowPeriod==='dia'?'día':'semana'}</span><span class="fsc-val">${fmt(avgExp)}</span></div>`;
+  el.innerHTML=`<div class="flow-stat-chip"><div class="fsc-dot" style="background:var(--green)"></div><span class="fsc-txt">Ingresos/${flowPeriod==='dia'?'día':'semana'}</span><span class="fsc-val">${fmt(avgInc)}</span></div><div class="flow-stat-chip"><div class="fsc-dot" style="background:var(--red)"></div><span class="fsc-txt">Gastos/${flowPeriod==='dia'?'día':'semana'}</span><span class="fsc-val">${fmt(avgExp)}</span></div>${totalSav>0?`<div class="flow-stat-chip"><div class="fsc-dot" style="background:var(--accent)"></div><span class="fsc-txt">Ahorros</span><span class="fsc-val">${fmt(totalSav)}</span></div>`:''}`;
 }
-function hideFlowTooltip(){const t=document.getElementById('flowTooltip');if(t)t.style.display='none';}
-function showFlowTooltip(event,label,income,expense){
+let activeFlowHitId = null;
+function hideFlowTooltip(){
+  const t=document.getElementById('flowTooltip');
+  if(t)t.style.display='none';
+  document.querySelectorAll('.flow-node-highlight').forEach(el=>el.classList.remove('flow-node-highlight'));
+  activeFlowHitId=null;
+}
+function showFlowTooltip(event,label,v1,v2,v3,mode='flow',hitId=null){
   const tip=document.getElementById('flowTooltip');if(!tip)return;
-  document.getElementById('flowTipLabel').textContent=label;
-  document.getElementById('flowTipIncomeVal').textContent=fmt(income);
-  document.getElementById('flowTipExpenseVal').textContent=fmt(expense);
-  const total=income-expense,tel=document.getElementById('flowTipTotal');
-  tel.textContent='Neto: '+fmt(total);tel.style.color=total>=0?'var(--green)':'var(--red)';
-  document.getElementById('flowTipIncomeRow').style.display=flowMetric==='gasto'?'none':'flex';
-  tip.style.display='block';
-  const tw=tip.offsetWidth||160,th=tip.offsetHeight||110,vw=window.innerWidth,vh=window.innerHeight;
-  const cx=event.clientX||vw/2,cy=event.clientY||vh/2;
-  let lx=cx+14,ly=cy-th/2;
-  if(lx+tw>vw-8)lx=cx-tw-14;if(lx<8)lx=8;if(ly<8)ly=8;if(ly+th>vh-8)ly=vh-th-8;
-  tip.style.left=lx+'px';tip.style.top=ly+'px';
-  clearTimeout(window._tipTimer);window._tipTimer=setTimeout(hideFlowTooltip,4000);
-  event.stopPropagation();
+  
+  // Highlight clicked node
+  document.querySelectorAll('.flow-node-highlight').forEach(el=>el.classList.remove('flow-node-highlight'));
+  if(event && event.currentTarget && event.currentTarget.classList){
+    event.currentTarget.classList.add('flow-node-highlight');
+  } else if(hitId){
+    const el = document.getElementById(hitId);
+    if(el) el.classList.add('flow-node-highlight');
+  }
+  activeFlowHitId = hitId;
+
+  const lblEl=document.getElementById('flowTipLabel');
+  if(lblEl) lblEl.innerHTML=`<span>${esc(label)}</span><span style="font-size:0.65rem;color:#718096;font-weight:700;text-transform:uppercase">${mode==='evol'?'Patrimonio':'Flujo'}</span>`;
+  const r1=document.getElementById('flowTipRow1');
+  const r2=document.getElementById('flowTipRow2');
+  const r3=document.getElementById('flowTipRow3');
+  const dot1=document.getElementById('flowTipDot1');
+  const dot2=document.getElementById('flowTipDot2');
+  const dot3=document.getElementById('flowTipDot3');
+  const key1=document.getElementById('flowTipKey1');
+  const key2=document.getElementById('flowTipKey2');
+  const key3=document.getElementById('flowTipKey3');
+  const val1=document.getElementById('flowTipVal1');
+  const val2=document.getElementById('flowTipVal2');
+  const val3=document.getElementById('flowTipVal3');
+  const totalEl=document.getElementById('flowTipTotal');
+
+  if(mode === 'evol'){
+    if(dot1)dot1.style.background = '#2f7fe0';
+    if(key1)key1.textContent = 'Disponible:';
+    if(val1){val1.textContent = fmt(v1);val1.style.color = '#2f7fe0';}
+    if(r1)r1.style.display = 'flex';
+
+    if(dot2)dot2.style.background = '#0a9f74';
+    if(key2)key2.textContent = 'Ahorro:';
+    if(val2){val2.textContent = fmt(v2);val2.style.color = '#0a9f74';}
+    if(r2)r2.style.display = 'flex';
+
+    if(r3) r3.style.display = 'none';
+
+    const tot = (typeof v3 === 'number') ? v3 : (Math.round((v1 + v2) * 100) / 100);
+    if(totalEl){
+      totalEl.textContent = 'Total: ' + fmt(tot);
+      totalEl.style.color = '#c77d10';
+    }
+
+    const evolBox = document.getElementById('evolNodeDetailBox');
+    if(evolBox){
+      evolBox.innerHTML = `
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+          <strong style="font-size:0.86rem;color:#0f1b2d">📌 Mes: ${esc(label)}</strong>
+          <span style="font-size:0.75rem;font-weight:800;color:#c77d10">Total: ${fmt(tot)}</span>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:0.75rem">
+          <div style="background:#f0f4f8;padding:6px 8px;border-radius:8px">
+            <span style="color:#4a5568;display:block;font-size:0.65rem;text-transform:uppercase">Disponible</span>
+            <strong style="color:#2f7fe0;font-size:0.85rem">${fmt(v1)}</strong>
+          </div>
+          <div style="background:#f0f8f5;padding:6px 8px;border-radius:8px">
+            <span style="color:#4a5568;display:block;font-size:0.65rem;text-transform:uppercase">Ahorro en fondos</span>
+            <strong style="color:#0a9f74;font-size:0.85rem">${fmt(v2)}</strong>
+          </div>
+        </div>
+      `;
+      evolBox.style.display = 'block';
+    }
+  } else {
+    const sav = (typeof v3 === 'number') ? v3 : 0;
+    if(dot1)dot1.style.background = '#0a9f74';
+    if(key1)key1.textContent = 'Ingresos:';
+    if(val1){val1.textContent = fmt(v1);val1.style.color = '#0a9f74';}
+    if(r1)r1.style.display = flowMetric === 'gasto' ? 'none' : 'flex';
+
+    if(dot2)dot2.style.background = '#e03556';
+    if(key2)key2.textContent = 'Gastos:';
+    if(val2){val2.textContent = fmt(v2);val2.style.color = '#e03556';}
+    if(r2)r2.style.display = 'flex';
+
+    if(r3){
+      if(sav > 0){
+        r3.style.display = 'flex';
+        if(dot3) dot3.style.background = '#c77d10';
+        if(key3) key3.textContent = 'Ahorros:';
+        if(val3){ val3.textContent = fmt(sav); val3.style.color = '#c77d10'; }
+      } else {
+        r3.style.display = 'none';
+      }
+    }
+
+    const net = Math.round((v1 - v2) * 100) / 100;
+    if(totalEl){
+      totalEl.textContent = 'Neto: ' + (net >= 0 ? '+' : '') + fmt(net);
+      totalEl.style.color = net >= 0 ? '#0a9f74' : '#e03556';
+    }
+
+    const flowBox = document.getElementById('flowNodeDetailBox');
+    if(flowBox){
+      flowBox.innerHTML = `
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+          <strong style="font-size:0.86rem;color:#0f1b2d">📌 Periodo: ${esc(label)}</strong>
+          <span style="font-size:0.75rem;font-weight:800;color:${net>=0?'#0a9f74':'#e03556'}">Neto: ${(net>=0?'+':'')+fmt(net)}</span>
+        </div>
+        <div style="display:grid;grid-template-columns:${sav>0?'repeat(3,1fr)':'repeat(2,1fr)'};gap:6px;font-size:0.75rem">
+          <div style="background:#f0f8f5;padding:6px 8px;border-radius:8px">
+            <span style="color:#4a5568;display:block;font-size:0.62rem;text-transform:uppercase">Ingresos</span>
+            <strong style="color:#0a9f74;font-size:0.85rem">${fmt(v1)}</strong>
+          </div>
+          <div style="background:#fff2f4;padding:6px 8px;border-radius:8px">
+            <span style="color:#4a5568;display:block;font-size:0.62rem;text-transform:uppercase">Gastos</span>
+            <strong style="color:#e03556;font-size:0.85rem">${fmt(v2)}</strong>
+          </div>
+          ${sav>0?`
+          <div style="background:#fff9f0;padding:6px 8px;border-radius:8px">
+            <span style="color:#4a5568;display:block;font-size:0.62rem;text-transform:uppercase">Ahorros</span>
+            <strong style="color:#c77d10;font-size:0.85rem">${fmt(sav)}</strong>
+          </div>`:''}
+        </div>
+      `;
+      flowBox.style.display = 'block';
+    }
+  }
+
+  tip.style.display = 'block';
+
+  let cx, cy;
+  if(event && event.touches && event.touches[0]){
+    cx = event.touches[0].clientX;
+    cy = event.touches[0].clientY;
+  } else if(event && event.clientX){
+    cx = event.clientX;
+    cy = event.clientY;
+  } else if(event && event.target && event.target.getBoundingClientRect){
+    const r = event.target.getBoundingClientRect();
+    cx = r.left + r.width / 2;
+    cy = r.top;
+  } else {
+    cx = window.innerWidth / 2;
+    cy = window.innerHeight / 2;
+  }
+
+  const tw = tip.offsetWidth || 190;
+  const th = tip.offsetHeight || 120;
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+
+  let lx = cx - tw / 2;
+  if(lx + tw > vw - 14) lx = vw - tw - 14;
+  if(lx < 14) lx = 14;
+
+  let ly = cy - th - 16;
+  if(ly < 70) ly = cy + 24;
+  if(ly + th > vh - 65) ly = Math.max(70, vh - th - 65);
+
+  tip.style.left = Math.round(lx) + 'px';
+  tip.style.top = Math.round(ly) + 'px';
+
+  clearTimeout(window._tipTimer);
+  window._tipTimer = setTimeout(hideFlowTooltip, 9000);
+  if(event && event.stopPropagation) event.stopPropagation();
 }
-document.addEventListener('click',e=>{if(!e.target.classList.contains('flow-hit'))hideFlowTooltip();});
+
+document.addEventListener('click', e => {
+  if(!e.target.closest('.flow-hit') && !e.target.closest('#flowTooltip') && !e.target.closest('.flow-node-card')) {
+    hideFlowTooltip();
+  }
+});
+
 function renderFlowChart(data){
   const el=document.getElementById('flowChartWrap');if(!el)return;
   hideFlowTooltip();
-  const hasData=data.some(d=>d.income>0||d.expense>0);
+  const flowBox = document.getElementById('flowNodeDetailBox');
+  if(flowBox) flowBox.style.display = 'none';
+
+  const hasData=data.some(d=>d.income>0||d.expense>0||(d.savings||0)>0);
   if(!hasData){el.innerHTML=`<div class="flow-empty"><div class="empty-icon">📊</div><p>Registra movimientos para ver el flujo</p></div>`;return;}
   const w=400,h=300,padL=44,padR=10,padT=14,padB=30;
-  const maxVal=Math.max(1,...data.map(d=>Math.max(d.income,d.expense)));
+  const maxVal=Math.max(1,...data.map(d=>Math.max(d.income,d.expense,d.savings||0)));
   const n=data.length,stepX=n>1?(w-padL-padR)/(n-1):w-padL-padR;
   const x=i=>padL+i*stepX,y=v=>h-padB-(v/maxVal)*(h-padT-padB);
   let gridHtml='';
@@ -2371,9 +2529,19 @@ function renderFlowChart(data){
   const lE=Math.max(1,Math.ceil(n/6));let xHtml='';
   data.forEach((d,i)=>{if(i%lE===0||i===n-1)xHtml+=`<text x="${x(i).toFixed(1)}" y="${(h-padB+13).toFixed(1)}" font-size="9" fill="rgba(128,128,128,0.9)" text-anchor="middle">${esc(d.label)}</text>`;});
   const pathFor=key=>data.map((d,i)=>`${i===0?'M':'L'}${x(i).toFixed(1)},${y(d[key]).toFixed(1)}`).join(' ');
-  let inc='';if(flowMetric!=='gasto'){inc=`<path d="${pathFor('income')}" fill="none" stroke="#00c896" stroke-width="2" stroke-linejoin="round"/>`+data.map((d,i)=>`<circle cx="${x(i).toFixed(1)}" cy="${y(d.income).toFixed(1)}" r="3.5" fill="#00c896" stroke="rgba(128,128,128,0.4)" stroke-width="1.5"/>`).join('');}
-  const exp=`<path d="${pathFor('expense')}" fill="none" stroke="#ff4d6a" stroke-width="2" stroke-linejoin="round"/>`+data.map((d,i)=>`<circle cx="${x(i).toFixed(1)}" cy="${y(d.expense).toFixed(1)}" r="3.5" fill="#ff4d6a" stroke="rgba(128,128,128,0.4)" stroke-width="1.5"/>`).join('');
-  const hits=data.map((d,i)=>{const cW=n>1?stepX:60,cX=n>1?x(i)-stepX/2:x(0)-30;return`<rect x="${cX.toFixed(1)}" y="${padT}" width="${cW.toFixed(1)}" height="${h-padT-padB}" fill="transparent" style="cursor:pointer" class="flow-hit" onclick="showFlowTooltip(event,'${esc(d.label).replace(/'/g,"\\'")}',${d.income},${d.expense})"/>`;}).join('');
+  
+  let inc='';
+  if(flowMetric!=='gasto'){
+    inc=`<path d="${pathFor('income')}" fill="none" stroke="#00c896" stroke-width="2.5" stroke-linejoin="round"/>`+
+      data.map((d,i)=>`<circle id="dot_inc_${i}" cx="${x(i).toFixed(1)}" cy="${y(d.income).toFixed(1)}" r="4.5" fill="#00c896" stroke="#0d1b2a" stroke-width="1.8" class="flow-hit" style="cursor:pointer" onclick="showFlowTooltip(event,'${esc(d.label).replace(/'/g,"\\'")}',${d.income},${d.expense},${d.savings||0},'flow','dot_inc_${i}')"/>`).join('');
+  }
+  const exp=`<path d="${pathFor('expense')}" fill="none" stroke="#ff4d6a" stroke-width="2.5" stroke-linejoin="round"/>`+
+    data.map((d,i)=>`<circle id="dot_exp_${i}" cx="${x(i).toFixed(1)}" cy="${y(d.expense).toFixed(1)}" r="4.5" fill="#ff4d6a" stroke="#0d1b2a" stroke-width="1.8" class="flow-hit" style="cursor:pointer" onclick="showFlowTooltip(event,'${esc(d.label).replace(/'/g,"\\'")}',${d.income},${d.expense},${d.savings||0},'flow','dot_exp_${i}')"/>`).join('');
+  
+  const hits=data.map((d,i)=>{
+    const cW=n>1?stepX:60,cX=n>1?x(i)-stepX/2:x(0)-30;
+    return`<rect x="${cX.toFixed(1)}" y="${padT}" width="${cW.toFixed(1)}" height="${h-padT-padB}" fill="transparent" style="cursor:pointer;-webkit-tap-highlight-color:transparent" class="flow-hit" onclick="showFlowTooltip(event,'${esc(d.label).replace(/'/g,"\\'")}',${d.income},${d.expense},${d.savings||0},'flow','dot_exp_${i}')"/>`;
+  }).join('');
   let wk='';
   if(flowPeriod==='dia'){
     wk+=`<text x="${padL+3}" y="${padT+9}" font-size="9" fill="rgba(128,128,128,0.9)">S1</text>`;
@@ -2381,7 +2549,14 @@ function renderFlowChart(data){
   }
   el.innerHTML=`<svg viewBox="0 0 ${w} ${h}" width="100%" style="display:block;height:auto" preserveAspectRatio="xMidYMid meet">${gridHtml}${wk}${xHtml}${inc}${exp}${hits}</svg>`;
 }
-function renderFlowTable(data){const tbody=document.getElementById('flowTableBody');if(!tbody)return;const tI=data.reduce((s,d)=>s+d.income,0),tE=data.reduce((s,d)=>s+d.expense,0);let rows=`<tr class="flow-table-total"><td>Σ Total</td><td class="flow-col-income">${fmt(tI)}</td><td class="flow-col-expense">${fmt(tE)}</td><td class="flow-col-total">${fmt(tI-tE)}</td></tr>`;const wD=data.filter(d=>d.income>0||d.expense>0).slice().reverse();rows+=wD.length?wD.map(d=>`<tr><td>${esc(d.label)}</td><td class="flow-col-income">${fmt(d.income)}</td><td class="flow-col-expense">${fmt(d.expense)}</td><td class="flow-col-total">${fmt(d.income-d.expense)}</td></tr>`).join(''):`<tr><td colspan="4" style="text-align:center;color:var(--text-3);padding:20px">Sin movimientos</td></tr>`;tbody.innerHTML=rows;}
+function renderFlowTable(data){
+  const tbody=document.getElementById('flowTableBody');if(!tbody)return;
+  const tI=data.reduce((s,d)=>s+d.income,0),tE=data.reduce((s,d)=>s+d.expense,0),tS=data.reduce((s,d)=>s+(d.savings||0),0);
+  let rows=`<tr class="flow-table-total"><td>Σ Total</td><td class="flow-col-income">${fmt(tI)}</td><td class="flow-col-expense">${fmt(tE)}</td><td class="flow-col-savings">${fmt(tS)}</td><td class="flow-col-total">${fmt(tI-tE)}</td></tr>`;
+  const wD=data.filter(d=>d.income>0||d.expense>0||(d.savings||0)>0).slice().reverse();
+  rows+=wD.length?wD.map(d=>`<tr><td>${esc(d.label)}</td><td class="flow-col-income">${fmt(d.income)}</td><td class="flow-col-expense">${fmt(d.expense)}</td><td class="flow-col-savings">${fmt(d.savings||0)}</td><td class="flow-col-total">${fmt(d.income-d.expense)}</td></tr>`).join(''):`<tr><td colspan="5" style="text-align:center;color:var(--text-3);padding:20px">Sin movimientos</td></tr>`;
+  tbody.innerHTML=rows;
+}
 function renderFlow(){const wrap=document.getElementById('flowChartWrap');if(!wrap)return;const periods=getFlowPeriods(flowPeriod),data=periods.map(p=>({...p,...sumForPeriod(p)}));renderFlowStats(data);renderFlowChart(data);renderFlowTable(data);}
 function goToMonth(y,m){currentYear=y;currentMonth=m;activeCatFilter=null;activeCatFilterLabel=null;showPage('pageInicio');render();}
 function csvCell(v){return '"'+String(v==null?'':v).replace(/"/g,'""')+'"';}
@@ -2968,8 +3143,41 @@ function openCierreMesModal(){
   document.getElementById('cierreMesModal').classList.add('open');
 }
 
+// ─── CIERRE DE MES Y AUDITORÍA ───────────────────
+async function ejecutarCierreDeMes(){
+  const key = getKey();
+  const txs = getMonthData(key);
+  const {income, expense, savings, balance} = calcSummary(txs);
+  const carry = getCarry();
+  const totalNet = Math.round((balance + carry) * 100) / 100;
+  const monthName = `${MONTHS[currentMonth]} ${currentYear}`;
+
+  const auditRecord = {
+    monthKey: key,
+    monthName,
+    income,
+    expense,
+    savings,
+    balance,
+    carry,
+    totalNet,
+    executedAt: new Date().toISOString()
+  };
+
+  try{
+    localStorage.setItem('gi_cierre_' + key, JSON.stringify(auditRecord));
+    showToast(`✅ Cierre de ${monthName} ejecutado (Disponible neto: ${fmt(totalNet)})`);
+    closeModal('cierreMesModal');
+    render();
+  }catch(e){
+    console.error(e);
+    showToast('❌ Error al ejecutar cierre');
+  }
+}
+
 // ─── EVOLUCIÓN DE TU DINERO (PATRIMONIO ACUMULADO) ──
 let currentFlujoView = 'periodo';
+let currentEvolMetric = 'total';
 
 function setFlujoView(view){
   currentFlujoView = view;
@@ -2985,6 +3193,22 @@ function setFlujoView(view){
 
   if(view === 'evolucion') renderEvolution();
   else renderFlow();
+}
+
+function setEvolMetric(metric){
+  currentEvolMetric = metric;
+  document.querySelectorAll('#evolMetricTabs .flow-metric').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.evolmetric === metric);
+  });
+  const titles = {
+    'total': '📈 Curva: Total Acumulado (Disponible + Ahorro)',
+    'available': '🔵 Curva: Solo Disponible en Cuentas',
+    'savings': '🟢 Curva: Solo Fondos de Ahorro Acumulados',
+    'all': '🌈 Comparativa: Total vs. Disponible vs. Ahorro'
+  };
+  const titleEl = document.getElementById('evolChartTitle');
+  if(titleEl && titles[metric]) titleEl.textContent = titles[metric];
+  renderEvolution();
 }
 
 function calcEvolutionData(){
@@ -3063,8 +3287,23 @@ function renderEvolution(){
 
   // Gráfica SVG
   if(chartWrap){
+    hideFlowTooltip();
+    const evolBox = document.getElementById('evolNodeDetailBox');
+    if(evolBox) evolBox.style.display = 'none';
+
     const w = 400, h = 260, padL = 50, padR = 20, padT = 20, padB = 34;
-    const vals = data.map(d => d.totalPatrimonio);
+
+    let vals = [];
+    if(currentEvolMetric === 'available'){
+      vals = data.map(d => d.available);
+    } else if(currentEvolMetric === 'savings'){
+      vals = data.map(d => d.savings);
+    } else if(currentEvolMetric === 'all'){
+      vals = data.flatMap(d => [d.totalPatrimonio, d.available, d.savings]);
+    } else {
+      vals = data.map(d => d.totalPatrimonio);
+    }
+
     const minVal = Math.min(0, ...vals);
     const maxVal = Math.max(100, ...vals);
     const range = (maxVal - minVal) || 1;
@@ -3088,45 +3327,110 @@ function renderEvolution(){
       xLabels += `<text x="${x(i).toFixed(1)}" y="${(h-padB+16).toFixed(1)}" font-size="9" fill="rgba(128,128,128,0.9)" text-anchor="middle">${esc(d.label)}</text>`;
     });
 
-    // Línea de evolución
-    const linePath = data.map((d, i) => `${i===0?'M':'L'}${x(i).toFixed(1)},${y(d.totalPatrimonio).toFixed(1)}`).join(' ');
-    const areaPath = linePath + ` L${x(n-1).toFixed(1)},${y(minVal).toFixed(1)} L${x(0).toFixed(1)},${y(minVal).toFixed(1)} Z`;
+    let pathsHtml = '';
+    let dotsHtml = '';
+    let legendHtml = '';
 
-    // Puntos interactivos
-    const dots = data.map((d, i) => `
-      <circle cx="${x(i).toFixed(1)}" cy="${y(d.totalPatrimonio).toFixed(1)}" r="4.5" fill="#f0a845" stroke="#0d1b2a" stroke-width="2"/>
-    `).join('');
+    const pathFor = fn => data.map((d, i) => `${i===0?'M':'L'}${x(i).toFixed(1)},${y(fn(d)).toFixed(1)}`).join(' ');
+
+    if(currentEvolMetric === 'available'){
+      const lP = pathFor(d => d.available);
+      const aP = lP + ` L${x(n-1).toFixed(1)},${y(minVal).toFixed(1)} L${x(0).toFixed(1)},${y(minVal).toFixed(1)} Z`;
+      pathsHtml = `
+        <defs>
+          <linearGradient id="availGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#4d9fff" stop-opacity="0.32"/>
+            <stop offset="100%" stop-color="#4d9fff" stop-opacity="0.02"/>
+          </linearGradient>
+        </defs>
+        <path d="${aP}" fill="url(#availGrad)"/>
+        <path d="${lP}" fill="none" stroke="#4d9fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+      `;
+      dotsHtml = data.map((d, i) => `
+        <circle id="evoldot_${i}" cx="${x(i).toFixed(1)}" cy="${y(d.available).toFixed(1)}" r="4.5" fill="#4d9fff" stroke="#0d1b2a" stroke-width="1.8" class="flow-hit" style="cursor:pointer" onclick="showFlowTooltip(event,'${esc(d.monthName).replace(/'/g,"\\'")}',${d.available},${d.savings},${d.totalPatrimonio},'evol','evoldot_${i}')"/>
+      `).join('');
+      legendHtml = `<span style="color:#4d9fff;font-weight:700">● Solo Disponible en cuentas</span>`;
+    } else if(currentEvolMetric === 'savings'){
+      const lP = pathFor(d => d.savings);
+      const aP = lP + ` L${x(n-1).toFixed(1)},${y(minVal).toFixed(1)} L${x(0).toFixed(1)},${y(minVal).toFixed(1)} Z`;
+      pathsHtml = `
+        <defs>
+          <linearGradient id="savGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#00c896" stop-opacity="0.32"/>
+            <stop offset="100%" stop-color="#00c896" stop-opacity="0.02"/>
+          </linearGradient>
+        </defs>
+        <path d="${aP}" fill="url(#savGrad)"/>
+        <path d="${lP}" fill="none" stroke="#00c896" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+      `;
+      dotsHtml = data.map((d, i) => `
+        <circle id="evoldot_${i}" cx="${x(i).toFixed(1)}" cy="${y(d.savings).toFixed(1)}" r="4.5" fill="#00c896" stroke="#0d1b2a" stroke-width="1.8" class="flow-hit" style="cursor:pointer" onclick="showFlowTooltip(event,'${esc(d.monthName).replace(/'/g,"\\'")}',${d.available},${d.savings},${d.totalPatrimonio},'evol','evoldot_${i}')"/>
+      `).join('');
+      legendHtml = `<span style="color:#00c896;font-weight:700">● Solo Fondos de Ahorro acumulados</span>`;
+    } else if(currentEvolMetric === 'all'){
+      const pTot = pathFor(d => d.totalPatrimonio);
+      const pAvail = pathFor(d => d.available);
+      const pSav = pathFor(d => d.savings);
+      pathsHtml = `
+        <path d="${pTot}" fill="none" stroke="#f0a845" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="${pAvail}" fill="none" stroke="#4d9fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="4 2"/>
+        <path d="${pSav}" fill="none" stroke="#00c896" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+      `;
+      dotsHtml = data.map((d, i) => `
+        <circle id="evoldot_tot_${i}" cx="${x(i).toFixed(1)}" cy="${y(d.totalPatrimonio).toFixed(1)}" r="4" fill="#f0a845" stroke="#0d1b2a" stroke-width="1.5" class="flow-hit" style="cursor:pointer" onclick="showFlowTooltip(event,'${esc(d.monthName).replace(/'/g,"\\'")}',${d.available},${d.savings},${d.totalPatrimonio},'evol','evoldot_tot_${i}')"/>
+        <circle id="evoldot_av_${i}" cx="${x(i).toFixed(1)}" cy="${y(d.available).toFixed(1)}" r="3.5" fill="#4d9fff" stroke="#0d1b2a" stroke-width="1.2" class="flow-hit" style="cursor:pointer" onclick="showFlowTooltip(event,'${esc(d.monthName).replace(/'/g,"\\'")}',${d.available},${d.savings},${d.totalPatrimonio},'evol','evoldot_av_${i}')"/>
+        <circle id="evoldot_sv_${i}" cx="${x(i).toFixed(1)}" cy="${y(d.savings).toFixed(1)}" r="3.5" fill="#00c896" stroke="#0d1b2a" stroke-width="1.2" class="flow-hit" style="cursor:pointer" onclick="showFlowTooltip(event,'${esc(d.monthName).replace(/'/g,"\\'")}',${d.available},${d.savings},${d.totalPatrimonio},'evol','evoldot_sv_${i}')"/>
+      `).join('');
+      legendHtml = `
+        <div style="display:flex;justify-content:center;gap:12px;font-size:0.72rem;flex-wrap:wrap">
+          <span style="color:#f0a845;font-weight:700">● Total</span>
+          <span style="color:#4d9fff;font-weight:700">┄ Solo Disponible</span>
+          <span style="color:#00c896;font-weight:700">● Solo Ahorro</span>
+        </div>
+      `;
+    } else {
+      // Default: total
+      const lP = pathFor(d => d.totalPatrimonio);
+      const aP = lP + ` L${x(n-1).toFixed(1)},${y(minVal).toFixed(1)} L${x(0).toFixed(1)},${y(minVal).toFixed(1)} Z`;
+      pathsHtml = `
+        <defs>
+          <linearGradient id="patrimonioGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#f0a845" stop-opacity="0.32"/>
+            <stop offset="100%" stop-color="#f0a845" stop-opacity="0.02"/>
+          </linearGradient>
+        </defs>
+        <path d="${aP}" fill="url(#patrimonioGrad)"/>
+        <path d="${lP}" fill="none" stroke="#f0a845" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+      `;
+      dotsHtml = data.map((d, i) => `
+        <circle id="evoldot_${i}" cx="${x(i).toFixed(1)}" cy="${y(d.totalPatrimonio).toFixed(1)}" r="4.5" fill="#f0a845" stroke="#0d1b2a" stroke-width="1.8" class="flow-hit" style="cursor:pointer" onclick="showFlowTooltip(event,'${esc(d.monthName).replace(/'/g,"\\'")}',${d.available},${d.savings},${d.totalPatrimonio},'evol','evoldot_${i}')"/>
+      `).join('');
+      legendHtml = `<span style="color:#f0a845;font-weight:700">🟡 Total Acumulado (Disponible + Ahorro)</span>`;
+    }
 
     const hits = data.map((d, i) => {
       const cW = n > 1 ? stepX : 60;
       const cX = n > 1 ? x(i) - stepX/2 : x(0) - 30;
       return `
-        <rect x="${cX.toFixed(1)}" y="${padT}" width="${cW.toFixed(1)}" height="${h-padT-padB}" fill="transparent" style="cursor:pointer" class="flow-hit" onclick="showFlowTooltip(event,'${esc(d.monthName).replace(/'/g,"\\'")}',${d.available},${d.savings})"/>
+        <rect x="${cX.toFixed(1)}" y="${padT}" width="${cW.toFixed(1)}" height="${h-padT-padB}" fill="transparent" style="cursor:pointer;-webkit-tap-highlight-color:transparent" class="flow-hit" onclick="showFlowTooltip(event,'${esc(d.monthName).replace(/'/g,"\\'")}',${d.available},${d.savings},${d.totalPatrimonio},'evol','evoldot_${i}')"/>
       `;
     }).join('');
 
     chartWrap.innerHTML = `
       <svg viewBox="0 0 ${w} ${h}" width="100%" style="display:block;height:auto" preserveAspectRatio="xMidYMid meet">
-        <defs>
-          <linearGradient id="patrimonioGrad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stop-color="#f0a845" stop-opacity="0.35"/>
-            <stop offset="100%" stop-color="#f0a845" stop-opacity="0.02"/>
-          </linearGradient>
-        </defs>
         ${grid}
-        <path d="${areaPath}" fill="url(#patrimonioGrad)"/>
-        <path d="${linePath}" fill="none" stroke="#f0a845" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+        ${pathsHtml}
         ${xLabels}
-        ${dots}
+        ${dotsHtml}
         ${hits}
       </svg>
-      <div style="font-size:0.68rem;color:var(--text-3);text-align:center;margin-top:4px">
-        🟡 Línea de avance patrimonial (Disponible disponible + Ahorro acumulado)
+      <div style="font-size:0.72rem;color:var(--text-3);text-align:center;margin-top:6px">
+        ${legendHtml}
       </div>
     `;
   }
 
-  // Tabla
+  // Tabla Avance Mes a Mes
   if(tableBody){
     tableBody.innerHTML = data.slice().reverse().map(d => {
       const growthSign = d.growth > 0 ? '+' : '';
@@ -3134,14 +3438,19 @@ function renderEvolution(){
       return `
         <tr>
           <td><strong>${esc(d.monthName)}</strong></td>
-          <td style="color:var(--blue)">${fmt(d.available)}</td>
-          <td style="color:var(--accent)">${fmt(d.savings)}</td>
+          <td style="color:var(--blue);font-weight:700">${fmt(d.available)}</td>
+          <td style="color:var(--accent);font-weight:700">${fmt(d.savings)}</td>
           <td><strong>${fmt(d.totalPatrimonio)}</strong></td>
-          <td style="color:${growthColor};font-weight:700">${growthSign}${fmt(d.growth)}</td>
+          <td style="color:${growthColor};font-weight:800">${growthSign}${fmt(d.growth)}</td>
         </tr>
       `;
     }).join('');
   }
+}
+
+function toggleSectionCollapse(){
+  // Conserva todas las secciones abiertas como solicitó el usuario
+  return false;
 }
 
 // Expose globals
@@ -3155,7 +3464,8 @@ window.filterByCategory=filterByCategory;window.openAccountModal=openAccountModa
 window.selectAccType=selectAccType;window.saveAccount=saveAccount;window.showAccTx=showAccTx;
 window.openBudgetModal=openBudgetModal;window.saveAllBudgets=saveAllBudgets;
 window.setFlowPeriod=setFlowPeriod;window.setFlowMetric=setFlowMetric;
-window.showFlowTooltip=showFlowTooltip;window.setDonutDrill=setDonutDrill;window.openSheet=openSheet;window.closeSheet=closeSheet;
+window.showFlowTooltip=showFlowTooltip;window.hideFlowTooltip=hideFlowTooltip;
+window.setDonutDrill=setDonutDrill;window.openSheet=openSheet;window.closeSheet=closeSheet;
 window.renderTransactions=renderTransactions;window.showToast=showToast;
 window.openCuadreModal=openCuadreModal;window.updateCuadreCalculations=updateCuadreCalculations;
 window.setCuadreInputExact=setCuadreInputExact;window.applyCuadreBase=applyCuadreBase;
@@ -3165,7 +3475,8 @@ window.toggleSectionCollapse=toggleSectionCollapse;
 window.openGoalModal=openGoalModal;window.onGoalCatChange=onGoalCatChange;
 window.saveSavingsGoal=saveSavingsGoal;window.deleteSavingsGoal=deleteSavingsGoal;
 window.renderSavingsGoals=renderSavingsGoals;window.openCierreMesModal=openCierreMesModal;
-window.setFlujoView=setFlujoView;window.renderEvolution=renderEvolution;
+window.setFlujoView=setFlujoView;window.setEvolMetric=setEvolMetric;window.renderEvolution=renderEvolution;
+window.ejecutarCierreDeMes=ejecutarCierreDeMes;
 
 // Show FAB label on hover/focus
 const fabEl=document.getElementById('fab'),fabLbl=document.getElementById('fabLabel');
