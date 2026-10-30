@@ -1568,7 +1568,7 @@ const db=getFirestore(app);
 const provider=new GoogleAuthProvider();
 provider.setCustomParameters({prompt:'select_account'});
 let unsubTx=null,unsubAcc=null,unsubBudget=null;
-const EMAILS_PERMITIDOS=['diana.huamali.asmat@gmail.com','fmftvanessa@gmail.com','bantonialcala@gmail.com'];
+const EMAILS_PERMITIDOS=['diana.huamali.asmat@gmail.com','fmftvanessa@gmail.com','bantonialcala@gmail.com','decirethcalla@gmail.com'];
 
 window.loginWithGoogle=async()=>{
   try{showLoading(true);await signInWithPopup(auth,provider);}
